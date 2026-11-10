@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Metro Milano</title>
+<meta name="description" content="Il percorso migliore in metropolitana a Milano verso qualsiasi indirizzo.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Metro MI">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: pannello di viaggio a sinistra (form + itinerari), mappa geografica della rete a destra; su telefono si impila. */
+:root{
+  --bg:#f3f4f6; --surface:#ffffff; --fg:#16181d; --muted:#5c6370; --line:#d9dce2; --soft:#e9ebef;
+  --accent:#16181d; --accent-fg:#ffffff; --walk:#7b8290; --warn:#a15c00; --warn-bg:#fff4e0;
+  --m1:#e2231a; --m2:#00964a; --m3:#f4b400; --m4:#0057a8; --m5:#8c6bb1;
+  --map:#fbfbfc; --station:#ffffff;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111317; --surface:#1a1d23; --fg:#eceef2; --muted:#9aa1ad; --line:#2d323b; --soft:#232730;
+  --accent:#eceef2; --accent-fg:#111317; --walk:#8d94a1; --warn:#f0b35a; --warn-bg:#2e2412;
+  --m1:#ff4b40; --m2:#1fbf6a; --m3:#ffc928; --m4:#3d8cff; --m5:#b292dc; --map:#15181d; --station:#1a1d23;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111317; --surface:#1a1d23; --fg:#eceef2; --muted:#9aa1ad; --line:#2d323b; --soft:#232730;
+  --accent:#eceef2; --accent-fg:#111317; --walk:#8d94a1; --warn:#f0b35a; --warn-bg:#2e2412;
+  --m1:#ff4b40; --m2:#1fbf6a; --m3:#ffc928; --m4:#3d8cff; --m5:#b292dc; --map:#15181d; --station:#1a1d23;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{background:var(--bg);color:var(--fg);margin:0}
+body{-webkit-tap-highlight-color:transparent;font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{width:44px;height:44px;border-radius:8px;background:var(--m1);color:#fff;display:grid;place-items:center;
+  font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1;flex:none}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+.chips{display:flex;gap:6px;margin-left:auto}
+.lb{font-family:var(--f-display);font-weight:800;font-size:12px;color:#fff;border-radius:4px;padding:3px 6px;line-height:1}
+.lb.M3{color:#1d1700}
+.lb.M1{background:var(--m1)}.lb.M2{background:var(--m2)}.lb.M3{background:var(--m3)}.lb.M4{background:var(--m4)}.lb.M5{background:var(--m5)}
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.field{display:flex;flex-direction:column;gap:5px;position:relative}
+.field label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:11px;color:var(--accent-fg);background:var(--accent)}
+.inrow{display:flex;gap:6px}
+.install{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.install p{margin:0;flex:1;min-width:0}
+.install .btn{padding:7px 12px}
+.gps{white-space:nowrap}
+input[type=text],input[type=time]{font-size:16px;font-family:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input:focus-visible,button:focus-visible{outline:2px solid var(--m4);outline-offset:2px}
+.resolved{font-size:12.5px;color:var(--muted);min-height:1.2em}
+.resolved.ai{color:var(--warn)}
+.resolved.err{color:var(--m1)}
+.sug{position:absolute;top:100%;left:0;right:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-top:4px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:260px;overflow:auto;padding:4px}
+.sug button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px;font:inherit;color:var(--fg);cursor:pointer}
+.sug button:hover,.sug button.on{background:var(--soft)}
+.sug .k{font-size:11px;color:var(--muted);margin-left:auto}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.row .field{flex:1 1 140px}
+button.btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);flex:1 1 160px}
+button.icon{padding:10px 12px;flex:none}
+button:disabled{opacity:.55;cursor:progress}
+.seg{display:flex;background:var(--soft);border-radius:8px;padding:3px;gap:3px}
+.seg button{flex:1;white-space:nowrap;font:inherit;font-size:13px;border:0;background:none;color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.hint{font-size:12.5px;color:var(--muted)}
+.results{display:flex;flex-direction:column;gap:10px}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--surface);display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:inherit;width:100%}
+.card.on{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.ctop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mins{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1}
+.mins small{font-size:14px;font-weight:700;margin-left:2px}
+.clock{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.tag{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.strip{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.strip .w{font-family:var(--f-mono);font-size:12px}
+.strip .sep{opacity:.5}
+.meta{display:flex;gap:14px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.steps li{display:grid;grid-template-columns:52px 22px minmax(0,1fr);gap:0 10px;min-height:44px}
+.steps .t{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);padding-top:1px;text-align:right}
+.rail{position:relative;display:flex;justify-content:center}
+.rail::before{content:"";position:absolute;top:0;bottom:0;width:6px;border-radius:3px;background:var(--c,var(--walk))}
+.rail.walk::before{width:0;border-left:3px dotted var(--walk);background:none}
+.rail.end::before{display:none}
+.rail i{position:relative;width:14px;height:14px;border-radius:50%;background:var(--station);border:3px solid var(--c,var(--fg));margin-top:2px}
+.steps .d{padding-bottom:12px;min-width:0}
+.steps .d b{font-weight:600}
+.steps .d .x{font-size:12.5px;color:var(--muted)}
+.mapbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;min-width:0}
+@media (min-width:901px){.mapbox{position:sticky;top:max(16px,env(safe-area-inset-top,0px))}}
+svg#map{display:block;width:100%;height:min(72vh,660px);background:var(--map);touch-action:none;cursor:crosshair;user-select:none}
+@media (max-width:900px){svg#map{height:420px}}
+.mapbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mapbar .hint{flex:1 1 200px}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 18px var(--f-body);cursor:pointer}
+.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:5px;flex-wrap:wrap;max-width:60%}
+.lbl{font-family:var(--f-body);fill:var(--fg);paint-order:stroke;stroke:var(--map);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px}
+.foot{font-size:12.5px;color:var(--muted);max-width:80ch}
+.foot a,.gm{color:inherit}
+.empty{color:var(--muted);font-size:14px;padding:6px 2px}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s,box-shadow .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">M</div>
+    <div>
+      <h1>Percorso Metro Milano</h1>
+      <p class="sub">Scrivi dove sei e dove vuoi andare: confronto gli itinerari su M1, M2, M3, M4 e M5, a piedi compresi.</p>
+    </div>
+    <div class="chips" aria-hidden="true"><span class="lb M1">M1</span><span class="lb M2">M2</span><span class="lb M3">M3</span><span class="lb M4">M4</span><span class="lb M5">M5</span></div>
+  </header>
+
+  <div class="install" id="install" hidden>
+    <p id="install-txt"></p>
+    <button type="button" class="btn primary" id="install-btn" hidden style="flex:0 0 auto">Installa</button>
+    <button type="button" class="btn" id="install-x" aria-label="Chiudi">✕</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-label="Pianifica il viaggio">
+      <form id="f" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
+        <div class="field">
+          <label for="from"><span class="dot">A</span>Partenza</label>
+          <div class="inrow"><input type="text" id="from" placeholder="Indirizzo, luogo o fermata" enterkeyhint="next"><button type="button" class="btn gps" id="gps" title="Usa la mia posizione">◎ Qui</button></div>
+          <div class="sug" id="sug-from" hidden></div>
+          <div class="resolved" id="res-from"></div>
+        </div>
+        <div class="field">
+          <label for="to"><span class="dot">B</span>Arrivo</label>
+          <div class="inrow"><input type="text" id="to" placeholder="es. Via Paolo Sarpi 20"><button type="button" class="btn icon" id="swap" title="Inverti partenza e arrivo" aria-label="Inverti partenza e arrivo">⇅</button></div>
+          <div class="sug" id="sug-to" hidden></div>
+          <div class="resolved" id="res-to"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:0 1 130px"><label for="time">Partenza alle</label><input type="time" id="time"></div>
+          <button class="btn primary" id="go" type="submit">Trova percorso</button>
+        </div>
+        <div class="field">
+          <label>Priorità</label>
+          <div class="seg" id="pref" role="group" aria-label="Priorità">
+            <button type="button" data-p="fast" class="on">Più veloce</button>
+            <button type="button" data-p="transfers">Meno cambi</button>
+            <button type="button" data-p="walk">Meno a piedi</button>
+          </div>
+        </div>
+      </form>
+      <div id="notice"></div>
+      <div class="results" id="results"></div>
+      <ol class="steps" id="steps" aria-label="Indicazioni"></ol>
+      <a class="gm hint" id="gm" href="#" target="_blank" rel="noopener" hidden>Confronta con gli orari in tempo reale su Google Maps ↗</a>
+    </section>
+
+    <section class="mapbox" aria-label="Mappa della rete">
+      <div class="mapbar">
+        <span class="hint">Tocca la mappa per fissare il punto:</span>
+        <div class="seg" id="pick" style="flex:0 0 auto">
+          <button type="button" data-k="from">A · Partenza</button>
+          <button type="button" data-k="to" class="on">B · Arrivo</button>
+        </div>
+      </div>
+      <svg id="map" role="img" aria-label="Mappa geografica della metropolitana di Milano"></svg>
+      <div class="legend" aria-hidden="true"><span class="lb M1">M1</span><span class="lb M2">M2</span><span class="lb M3">M3</span><span class="lb M4">M4</span><span class="lb M5">M5</span></div>
+      <div class="zoom"><button type="button" id="zin" aria-label="Ingrandisci">+</button><button type="button" id="zout" aria-label="Riduci">−</button><button type="button" id="zfit" aria-label="Adatta al percorso" style="font-size:14px">⤢</button></div>
+    </section>
+  </div>
+
+  <p class="foot">Tempi stimati dalla geometria della rete: velocità commerciale di circa 33 km/h, 30 s di sosta per fermata, 2–3 minuti di attesa in banchina, 4 minuti per ogni cambio e 4,8 km/h a piedi. Il servizio metro è attivo indicativamente dalle 5:30 alle 0:30. Per scioperi, chiusure e orari reali conviene controllare ATM prima di partire. Gli indirizzi vengono cercati su OpenStreetMap (serve la connessione; offline funzionano luoghi noti, fermate e tocco sulla mappa): verifica il punto sulla mappa e, se serve, correggilo con un tocco. Dati indirizzi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributori OpenStreetMap</a>.</p>
+</div>
+
+<script>
+// ---------- Rete ----------
+const S = {
+"Sesto 1° Maggio FS":[45.5413,9.2385],"Sesto Rondò":[45.5332,9.2299],"Sesto Marelli":[45.5249,9.2264],"Villa San Giovanni":[45.5193,9.2246],
+"Precotto":[45.5130,9.2240],"Gorla":[45.5068,9.2240],"Turro":[45.5009,9.2236],"Rovereto":[45.4960,9.2207],"Pasteur":[45.4912,9.2183],
+"Loreto":[45.4858,9.2164],"Lima":[45.4800,9.2106],"Porta Venezia":[45.4746,9.2052],"Palestro":[45.4713,9.2021],"San Babila":[45.4665,9.1977],
+"Duomo":[45.4641,9.1903],"Cordusio":[45.4655,9.1864],"Cairoli":[45.4682,9.1823],"Cadorna":[45.4680,9.1758],"Conciliazione":[45.4673,9.1683],
+"Pagano":[45.4681,9.1615],"Buonarroti":[45.4711,9.1559],"Amendola":[45.4745,9.1521],"Lotto":[45.4794,9.1448],"QT8":[45.4862,9.1380],
+"Lampugnano":[45.4892,9.1274],"Uruguay":[45.4910,9.1180],"Bonola":[45.4956,9.1105],"San Leonardo":[45.5004,9.1008],"Molino Dorino":[45.5047,9.0920],
+"Pero":[45.5104,9.0868],"Rho Fiera":[45.5212,9.0885],
+"Wagner":[45.4675,9.1556],"De Angeli":[45.4670,9.1480],"Gambara":[45.4661,9.1404],"Bande Nere":[45.4622,9.1342],"Primaticcio":[45.4610,9.1262],
+"Inganni":[45.4597,9.1177],"Bisceglie":[45.4558,9.1110],
+"Assago Milanofiori Forum":[45.4040,9.1352],"Assago Milanofiori Nord":[45.4094,9.1450],"Abbiategrasso":[45.4307,9.1778],"Famagosta":[45.4373,9.1678],
+"Romolo":[45.4438,9.1676],"Porta Genova FS":[45.4537,9.1700],"Sant'Agostino":[45.4585,9.1707],"Sant'Ambrogio":[45.4622,9.1752],"Lanza":[45.4720,9.1833],
+"Moscova":[45.4775,9.1849],"Garibaldi FS":[45.4843,9.1875],"Gioia":[45.4846,9.1960],"Centrale FS":[45.4849,9.2036],"Caiazzo":[45.4852,9.2097],
+"Piola":[45.4797,9.2244],"Lambrate FS":[45.4847,9.2366],"Udine":[45.4913,9.2370],"Cimiano":[45.4975,9.2405],"Crescenzago":[45.5034,9.2477],
+"Cascina Gobba":[45.5112,9.2600],"Cologno Sud":[45.5194,9.2702],"Cologno Centro":[45.5280,9.2779],"Cologno Nord":[45.5350,9.2835],
+"Vimodrone":[45.5150,9.2848],"Cascina Burrona":[45.5163,9.2995],"Cernusco sul Naviglio":[45.5223,9.3300],"Villa Fiorita":[45.5244,9.3425],
+"Cassina de' Pecchi":[45.5264,9.3600],"Bussero":[45.5302,9.3750],"Villa Pompea":[45.5336,9.3895],"Gorgonzola":[45.5370,9.4050],
+"Cascina Antonietta":[45.5402,9.4200],"Gessate":[45.5450,9.4350],
+"Comasina":[45.5280,9.1632],"Affori FN":[45.5212,9.1700],"Affori Centro":[45.5140,9.1730],"Dergano":[45.5050,9.1800],"Maciachini":[45.4980,9.1843],
+"Zara":[45.4925,9.1925],"Sondrio":[45.4883,9.2000],"Repubblica":[45.4797,9.1977],"Turati":[45.4745,9.1951],"Montenapoleone":[45.4690,9.1945],
+"Missori":[45.4600,9.1890],"Crocetta":[45.4560,9.1940],"Porta Romana":[45.4520,9.2022],"Lodi T.I.B.B.":[45.4470,9.2100],"Brenta":[45.4430,9.2155],
+"Corvetto":[45.4400,9.2230],"Porto di Mare":[45.4330,9.2330],"Rogoredo FS":[45.4338,9.2393],"San Donato":[45.4290,9.2552],
+"Bignami":[45.5280,9.2130],"Ponale":[45.5230,9.2100],"Bicocca":[45.5150,9.2050],"Ca' Granda":[45.5080,9.1990],"Istria":[45.5010,9.1962],
+"Marche":[45.4960,9.1940],"Isola":[45.4880,9.1895],"Monumentale":[45.4853,9.1802],"Cenisio":[45.4842,9.1705],"Gerusalemme":[45.4823,9.1645],
+"Domodossola":[45.4812,9.1592],"Tre Torri":[45.4775,9.1550],"Portello":[45.4810,9.1490],"Segesta":[45.4762,9.1352],
+"San Siro Ippodromo":[45.4762,9.1275],"San Siro Stadio":[45.4765,9.1210],
+"San Cristoforo FS":[45.4432,9.1312],"Segneri":[45.4470,9.1290],"Gelsomini":[45.4500,9.1338],"Frattini":[45.4528,9.1400],"Tolstoj":[45.4532,9.1480],
+"Bolivar":[45.4540,9.1550],"California":[45.4560,9.1612],"Coni Zugna":[45.4590,9.1668],"De Amicis":[45.4592,9.1790],"Vetra":[45.4583,9.1840],
+"Santa Sofia":[45.4572,9.1928],"Sforza-Policlinico":[45.4612,9.1962],"Tricolore":[45.4675,9.2062],"Dateo":[45.4683,9.2142],"Susa":[45.4660,9.2203],
+"Argonne":[45.4648,9.2282],"Forlanini FS":[45.4632,9.2370],"Repetti":[45.4620,9.2580],"Linate Aeroporto":[45.4600,9.2782]
+};
+const M1T=["Sesto 1° Maggio FS","Sesto Rondò","Sesto Marelli","Villa San Giovanni","Precotto","Gorla","Turro","Rovereto","Pasteur","Loreto","Lima","Porta Venezia","Palestro","San Babila","Duomo","Cordusio","Cairoli","Cadorna","Conciliazione","Pagano"];
+const M2T=["Garibaldi FS","Gioia","Centrale FS","Caiazzo","Loreto","Piola","Lambrate FS","Udine","Cimiano","Crescenzago","Cascina Gobba"];
+const M2S=["Famagosta","Romolo","Porta Genova FS","Sant'Agostino","Sant'Ambrogio","Cadorna","Lanza","Moscova"];
+const LINES={
+ M1:{v:"--m1",br:[[...M1T,"Buonarroti","Amendola","Lotto","QT8","Lampugnano","Uruguay","Bonola","San Leonardo","Molino Dorino","Pero","Rho Fiera"],
+                 [...M1T,"Wagner","De Angeli","Gambara","Bande Nere","Primaticcio","Inganni","Bisceglie"]]},
+ M2:{v:"--m2",br:[["Abbiategrasso",...M2S,...M2T,"Vimodrone","Cascina Burrona","Cernusco sul Naviglio","Villa Fiorita","Cassina de' Pecchi","Bussero","Villa Pompea","Gorgonzola","Cascina Antonietta","Gessate"],
+                 ["Assago Milanofiori Forum","Assago Milanofiori Nord",...M2S,...M2T,"Cologno Sud","Cologno Centro","Cologno Nord"]]},
+ M3:{v:"--m3",br:[["Comasina","Affori FN","Affori Centro","Dergano","Maciachini","Zara","Sondrio","Centrale FS","Repubblica","Turati","Montenapoleone","Duomo","Missori","Crocetta","Porta Romana","Lodi T.I.B.B.","Brenta","Corvetto","Porto di Mare","Rogoredo FS","San Donato"]]},
+ M4:{v:"--m4",br:[["San Cristoforo FS","Segneri","Gelsomini","Frattini","Tolstoj","Bolivar","California","Coni Zugna","Sant'Ambrogio","De Amicis","Vetra","Santa Sofia","Sforza-Policlinico","San Babila","Tricolore","Dateo","Susa","Argonne","Forlanini FS","Repetti","Linate Aeroporto"]]},
+ M5:{v:"--m5",br:[["Bignami","Ponale","Bicocca","Ca' Granda","Istria","Marche","Zara","Isola","Garibaldi FS","Monumentale","Cenisio","Gerusalemme","Domodossola","Tre Torri","Portello","Lotto","Segesta","San Siro Ippodromo","San Siro Stadio"]]}
+};
+// Luoghi noti (ricerca rapida, senza rete)
+const PLACES=[
+["Duomo di Milano",45.4641,9.1919],["Castello Sforzesco",45.4705,9.1793],["Stazione Centrale",45.4862,9.2045],["Darsena (Navigli)",45.4525,9.1760],
+["Naviglio Grande, Alzaia",45.4510,9.1690],["Teatro alla Scala",45.4674,9.1895],["Galleria Vittorio Emanuele II",45.4659,9.1899],["Brera, Pinacoteca",45.4720,9.1880],
+["Cenacolo Vinciano (S. Maria delle Grazie)",45.4659,9.1709],["Arco della Pace",45.4757,9.1725],["Parco Sempione",45.4727,9.1770],
+["Piazza Gae Aulenti (Porta Nuova)",45.4838,9.1898],["Corso Como",45.4815,9.1878],["Quartiere Isola",45.4885,9.1895],["CityLife",45.4778,9.1557],
+["Stadio San Siro (Meazza)",45.4781,9.1240],["Ippodromo Snai San Siro",45.4790,9.1330],["Allianz MiCo (Fiera city)",45.4783,9.1530],["Fiera Milano Rho",45.5203,9.0890],
+["Aeroporto di Linate",45.4600,9.2783],["Politecnico – Leonardo",45.4781,9.2272],["Politecnico – Bovisa",45.5030,9.1560],["Università Statale",45.4600,9.1946],
+["Università Bocconi",45.4497,9.1890],["Università Cattolica",45.4627,9.1771],["Università Bicocca",45.5137,9.2113],["Ospedale Niguarda",45.5103,9.1867],
+["Ospedale San Raffaele",45.5050,9.2640],["Policlinico di Milano",45.4590,9.1970],["Corso Buenos Aires",45.4790,9.2095],["Piazzale Loreto",45.4858,9.2164],
+["Corso Vittorio Emanuele",45.4651,9.1945],["Via Montenapoleone",45.4685,9.1955],["Chinatown (Via Paolo Sarpi)",45.4810,9.1735],["NoLo",45.4960,9.2195],
+["Fondazione Prada",45.4445,9.2050],["Piazza Napoli",45.4520,9.1525],["Unipol Forum (Assago)",45.4060,9.1340],["Stazione Porta Garibaldi",45.4848,9.1870],
+["Stazione Cadorna",45.4683,9.1757],["Stazione Lambrate",45.4847,9.2370],["Stazione Rogoredo",45.4336,9.2391],["Stazione Porta Genova",45.4537,9.1700],
+["Porta Romana (piazzale Medaglie d'Oro)",45.4510,9.2050],["Piazza XXIV Maggio",45.4527,9.1795],["Colonne di San Lorenzo",45.4580,9.1815],
+["Giardini Indro Montanelli",45.4740,9.2010],["Triennale Milano",45.4720,9.1735],["Bosco Verticale",45.4855,9.1905],["Tre Torri (CityLife)",45.4775,9.1550]
+].map(([n,a,o])=>({name:n,lat:a,lon:o,kind:"luogo"}));
+
+// grafo
+const ADJ={}; // ADJ[line][station] = Set di vicini
+for(const [L,d] of Object.entries(LINES)){ADJ[L]={};for(const b of d.br)for(let i=0;i<b.length;i++){const s=b[i];ADJ[L][s]??=new Set();if(i>0)ADJ[L][s].add(b[i-1]);if(i<b.length-1)ADJ[L][s].add(b[i+1]);}}
+const LINES_AT={};for(const L in ADJ)for(const s in ADJ[L])(LINES_AT[s]??=[]).push(L);
+for(const s in LINES_AT) if(!S[s]) console.warn("coord mancante",s);
+
+const R=6371;
+function km(a,b){const t=Math.PI/180,dl=(b[0]-a[0])*t,dn=(b[1]-a[1])*t;const h=Math.sin(dl/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+const P={speed:33,dwell:.5,wait:2.5,transfer:4,walk:4.8,detour:1.25,access:1};
+const walkMin=d=>d*P.detour/P.walk*60;
+const rideMin=(a,b)=>km(S[a],S[b])/P.speed*60+P.dwell;
+
+function plan(o,dst,profile){
+  const W={fast:{walk:1,tr:0},transfers:{walk:1,tr:14},walk:{walk:2.6,tr:0}}[profile];
+  const near=pt=>{const l=Object.keys(LINES_AT).map(s=>({s,d:km(pt,S[s])})).sort((a,b)=>a.d-b.d);return l.filter((x,i)=>i<3||x.d<1.6).slice(0,10);};
+  const no=near(o), nd=near(dst); const exitMap=new Map(nd.map(x=>[x.s,x.d]));
+  const dist=new Map(),prev=new Map(),done=new Set();const Q=[];
+  const push=(k,c,p)=>{if(c<(dist.get(k)??Infinity)){dist.set(k,c);prev.set(k,p);Q.push([c,k]);}};
+  for(const x of no)for(const L of LINES_AT[x.s])push(x.s+"|"+L,walkMin(x.d)*W.walk+P.access+P.wait,"SRC");
+  let best=walkMin(km(o,dst))*W.walk,bestK="DIRECT";
+  while(Q.length){Q.sort((a,b)=>a[0]-b[0]);const [c,k]=Q.shift();if(done.has(k))continue;done.add(k);if(c>=best)break;
+    const [s,L]=k.split("|");
+    if(exitMap.has(s)){const tot=c+walkMin(exitMap.get(s))*W.walk+P.access;if(tot<best){best=tot;bestK=k;}}
+    for(const n of ADJ[L][s])push(n+"|"+L,c+rideMin(s,n),k);
+    for(const L2 of LINES_AT[s])if(L2!==L)push(s+"|"+L2,c+P.transfer+W.tr,k);
+  }
+  if(bestK==="DIRECT")return {direct:true,legs:[{type:"walk",from:o,to:dst,min:walkMin(km(o,dst)),km:km(o,dst)}]};
+  const nodes=[];let k=bestK;while(k!=="SRC"){nodes.unshift(k);k=prev.get(k);}
+  return build(o,dst,nodes);
+}
+function build(o,dst,nodes){
+  const legs=[];const st=nodes.map(n=>n.split("|"));
+  const first=st[0][0];legs.push({type:"walk",from:o,to:S[first],toName:first,km:km(o,S[first]),min:walkMin(km(o,S[first]))});
+  let cur=null;
+  for(let i=0;i<st.length;i++){const [s,L]=st[i];
+    if(!cur||cur.line!==L){ if(cur){legs.push(cur);legs.push({type:"transfer",at:s,min:P.transfer,from:cur.line,to:L});} cur={type:"ride",line:L,stops:[s],min:0}; }
+    else{cur.min+=rideMin(cur.stops[cur.stops.length-1],s);cur.stops.push(s);}
+  }
+  legs.push(cur);
+  const last=st[st.length-1][0];legs.push({type:"walk",from:S[last],fromName:last,to:dst,km:km(S[last],dst),min:walkMin(km(S[last],dst))});
+  // rimuovi cambi "vuoti" (salgo e scendo senza viaggiare)
+  return {legs:legs.filter(l=>!(l.type==="ride"&&l.stops.length<2))};
+}
+function summarize(r){
+  // ricomponi cambi dopo il filtro
+  const L=[];for(const l of r.legs){if(l.type==="transfer"){const p=L[L.length-1];if(!p||p.type!=="ride")continue;}L.push(l);}
+  while(L.length&&L[L.length-2]?.type==="transfer"&&L[L.length-1]?.type!=="ride")L.splice(L.length-2,1);
+  const rides=L.filter(l=>l.type==="ride");
+  for(let i=0;i<L.length;i++)if(L[i].type==="transfer"&&L[i+1]?.type!=="ride")L.splice(i--,1);
+  let total=0,walk=0;for(const l of L){total+=l.min;if(l.type==="walk")walk+=l.min;}
+  if(rides.length)total+=P.wait+2*P.access;
+  const key=rides.map(x=>x.line+":"+x.stops[0]+">"+x.stops[x.stops.length-1]).join("|")||"walk";
+  return {legs:L,rides,total,walk,transfers:Math.max(0,rides.length-1),key,walkKm:L.filter(l=>l.type==="walk").reduce((a,b)=>a+b.km,0)};
+}
+function direction(line,a,b){for(const br of LINES[line].br){const i=br.indexOf(a),j=br.indexOf(b);if(i>-1&&j>-1)return j>i?br[br.length-1]:br[0];}return "";}
+
+// ---------- Stato ----------
+const $=id=>document.getElementById(id);
+const state={from:null,to:null,pref:"fast",routes:[],sel:0,pick:"to"};
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const STATION_PLACES=Object.keys(LINES_AT).map(s=>({name:s,lat:S[s][0],lon:S[s][1],kind:"fermata "+LINES_AT[s].join(" ")}));
+const ALL=[...PLACES,...STATION_PLACES];
+function matches(q){q=norm(q);if(!q)return[];return ALL.map(p=>{const n=norm(p.name);const i=n.indexOf(q);return {p,sc:i<0?(q.split(" ").every(w=>n.includes(w))?50:-1):(i===0?0:10)+n.length/100};}).filter(x=>x.sc>=0).sort((a,b)=>a.sc-b.sc).slice(0,8).map(x=>x.p);}
+const fmt=m=>Math.max(1,Math.round(m));
+const clockAdd=(t,m)=>{if(!t)return"";const [h,mi]=t.split(":").map(Number);const d=(h*60+mi+Math.round(m))%1440;return String(Math.floor(d/60)).padStart(2,"0")+":"+String(d%60).padStart(2,"0");};
+const inMilan=(a,o)=>a>45.33&&a<45.62&&o>8.95&&o<9.5;
+
+function setPoint(k,p,note,cls=""){state[k]=p;$("res-"+k).textContent=note;$("res-"+k).className="resolved "+cls;drawPins();}
+
+// ---------- Ricerca indirizzi ----------
+async function resolve(k){
+  const v=$(k).value.trim();
+  if(!v){setPoint(k,null,"Inserisci un indirizzo.","err");return false;}
+  if(state[k]&&state[k].q===v)return true;
+  const ll=v.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(ll){const a=+ll[1],o=+ll[2];if(inMilan(a,o)){setPoint(k,{lat:a,lon:o,name:v,q:v},"Coordinate inserite.");return true;}}
+  const m=matches(v);if(m.length&&norm(m[0].name)===norm(v)){const p=m[0];setPoint(k,{...p,q:v},p.kind==="luogo"?"Luogo dall'elenco rapido.":"Fermata "+p.kind.replace("fermata ",""));return true;}
+  $("res-"+k).textContent="Cerco “"+v+"”…";$("res-"+k).className="resolved";
+  try{
+    const r=await geocode(v);
+    if(r){setPoint(k,{lat:r.lat,lon:r.lon,name:r.label,q:v},"Trovato: "+r.label+". Controlla il pin sulla mappa.");return true;}
+    if(m.length){const p=m[0];setPoint(k,{...p,q:v},"Indirizzo non trovato: uso "+p.name+". Per un punto preciso tocca la mappa.","ai");return true;}
+    setPoint(k,null,"Non ho trovato “"+v+"” nell'area di Milano. Aggiungi il civico o tocca la mappa.","err");return false;
+  }catch(e){
+    if(m.length){const p=m[0];setPoint(k,{...p,q:v},"Sei offline: uso "+p.name+". Per un punto preciso tocca la mappa.","ai");return true;}
+    setPoint(k,null,"Ricerca indirizzi non disponibile (sei offline?). Scegli un luogo dall'elenco o tocca la mappa.","err");return false;}
+}
+// OpenStreetMap Nominatim: max 1 richiesta al secondo, risultati in cache sul dispositivo
+let lastGeo=0;const GEO_KEY="geo-cache-v1";
+const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_KEY))||{}}catch{return{}}})();
+async function geocode(q){
+  const key=norm(q);if(geoCache[key])return geoCache[key];
+  const wait=lastGeo+1100-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));lastGeo=Date.now();
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=it&accept-language=it&addressdetails=1&viewbox=8.95,45.62,9.5,45.33&bounded=1&q="+encodeURIComponent(/milan/i.test(q)?q:q+", Milano");
+  const res=await fetch(u,{headers:{"Accept":"application/json"}});if(!res.ok)throw new Error("http "+res.status);
+  const j=await res.json();if(!j.length)return null;
+  const a=j[0],ad=a.address||{};
+  const label=[ad.road&&(ad.road+(ad.house_number?" "+ad.house_number:"")),ad.suburb||ad.quarter||ad.city_district,!ad.road&&a.name].filter(Boolean).join(", ")||a.display_name.split(",").slice(0,2).join(",");
+  const r={lat:+a.lat,lon:+a.lon,label};if(!inMilan(r.lat,r.lon))return null;
+  geoCache[key]=r;try{localStorage.setItem(GEO_KEY,JSON.stringify(geoCache))}catch{}
+  return r;
+}
+// Posizione attuale
+$("gps").onclick=()=>{
+  if(!navigator.geolocation){setPoint("from",null,"Questo dispositivo non fornisce la posizione.","err");return;}
+  $("res-from").textContent="Cerco la tua posizione…";$("res-from").className="resolved";
+  navigator.geolocation.getCurrentPosition(p=>{const {latitude:a,longitude:o,accuracy:acc}=p.coords;
+    if(!inMilan(a,o)){setPoint("from",null,"Sei fuori dall'area della metropolitana di Milano.","err");return;}
+    $("from").value="La mia posizione";setPoint("from",{lat:a,lon:o,name:"La mia posizione",q:"La mia posizione"},"Posizione GPS (precisione ± "+Math.round(acc)+" m).");
+    if(state.to)run();},
+   e=>setPoint("from",null,e.code===1?"Permesso di posizione negato: attivalo nelle impostazioni del browser.":"Posizione non disponibile, riprova all'aperto.","err"),
+   {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+};
+function bindSuggest(k){
+  const inp=$(k),box=$("sug-"+k);let idx=-1,list=[];
+  const close=()=>{box.hidden=true;idx=-1;};
+  const render=()=>{box.innerHTML="";list.forEach((p,i)=>{const b=document.createElement("button");b.type="button";b.className=i===idx?"on":"";
+    b.innerHTML="<span></span><span class='k'></span>";b.children[0].textContent=p.name;b.children[1].textContent=p.kind;
+    b.onmousedown=e=>{e.preventDefault();choose(p);};box.appendChild(b);});box.hidden=!list.length;};
+  const choose=p=>{inp.value=p.name;setPoint(k,{...p,q:p.name},p.kind==="luogo"?"Luogo dall'elenco rapido.":"Fermata "+p.kind.replace("fermata ",""));close();if(state.from&&state.to)run();};
+  inp.addEventListener("input",()=>{list=matches(inp.value);idx=-1;render();});
+  inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){idx=Math.min(list.length-1,idx+1);render();e.preventDefault();}
+    else if(e.key==="ArrowUp"){idx=Math.max(-1,idx-1);render();e.preventDefault();}
+    else if(e.key==="Enter"&&idx>=0){e.preventDefault();choose(list[idx]);}else if(e.key==="Escape")close();});
+  inp.addEventListener("blur",()=>setTimeout(close,120));
+}
+bindSuggest("from");bindSuggest("to");
+
+// ---------- Calcolo ----------
+async function run(){
+  $("go").disabled=true;$("go").textContent="Calcolo…";
+  const ok=(await Promise.all([resolve("from"),resolve("to")])).every(Boolean);
+  $("go").disabled=false;$("go").textContent="Trova percorso";
+  if(!ok){state.routes=[];renderResults();return;}
+  const o=[state.from.lat,state.from.lon],d=[state.to.lat,state.to.lon];
+  const seen=new Map();
+  for(const pr of ["fast","transfers","walk"]){const r=summarize(plan(o,d,pr));if(!seen.has(r.key))seen.set(r.key,{...r,best:[]});seen.get(r.key).best.push(pr);}
+  let routes=[...seen.values()];
+  const minT=Math.min(...routes.map(r=>r.total)),minX=Math.min(...routes.map(r=>r.transfers)),minW=Math.min(...routes.map(r=>r.walk));
+  routes.forEach(r=>{r.tags=[];if(r.total-minT<.5)r.tags.push("Più veloce");if(r.transfers===minX&&routes.length>1)r.tags.push("Meno cambi");if(r.walk-minW<.5&&routes.length>1)r.tags.push("Meno a piedi");});
+  const score={fast:r=>r.total,transfers:r=>r.transfers*100+r.total,walk:r=>r.walk*3+r.total}[state.pref];
+  routes.sort((a,b)=>score(a)-score(b));
+  state.routes=routes;state.sel=0;renderResults();fit();
+}
+
+function renderResults(){
+  const box=$("results"),steps=$("steps");box.innerHTML="";steps.innerHTML="";$("notice").innerHTML="";
+  const gm=$("gm");
+  if(!state.routes.length){box.innerHTML="<p class='empty'>Indica partenza e arrivo per vedere gli itinerari.</p>";gm.hidden=true;drawRoute();return;}
+  const t=$("time").value;
+  if(t){const [h,mi]=t.split(":").map(Number);const m=h*60+mi;if(m>=30&&m<330)$("notice").innerHTML="<div class='warn'>A quest'ora la metropolitana è chiusa (servizio circa 5:30–0:30). Di notte ATM attiva le linee bus notturne N.</div>";}
+  state.routes.forEach((r,i)=>{
+    const c=document.createElement("button");c.type="button";c.className="card"+(i===state.sel?" on":"");c.setAttribute("aria-pressed",i===state.sel);
+    const strip=r.legs.map(l=>l.type==="walk"?`<span class="w">🚶${fmt(l.min)}′</span>`:l.type==="ride"?`<span class="lb ${l.line}">${l.line}</span>`:"").filter(Boolean).join("<span class='sep'>›</span>");
+    c.innerHTML=`<div class="ctop"><span class="mins">${fmt(r.total)}<small>min</small></span>${t?`<span class="clock">${t} → ${clockAdd(t,r.total)}</span>`:""}<span class="tags">${r.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</span></div>
+      <div class="strip">${strip}</div>
+      <div class="meta"><span>${r.rides.length?(r.transfers===0?"Nessun cambio":r.transfers+(r.transfers>1?" cambi":" cambio")):"Solo a piedi"}</span><span>${(r.walkKm*P.detour).toFixed(1).replace(".",",")} km a piedi</span>${r.rides.length?`<span>${r.rides.reduce((a,x)=>a+x.stops.length-1,0)} fermate</span>`:""}</div>`;
+    c.onclick=()=>{state.sel=i;renderResults();fit();};box.appendChild(c);
+  });
+  const r=state.routes[state.sel];let clock=0;const tt=m=>t?clockAdd(t,m):"+"+fmt(m)+"′";
+  const add=(time,rail,html,c)=>{const li=document.createElement("li");li.innerHTML=`<span class="t">${time}</span><span class="rail ${rail}" style="${c?`--c:var(${c})`:""}"><i></i></span><div class="d">${html}</div>`;steps.appendChild(li);};
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  add(t||"0′","walk",`<b>${esc(state.from.name)}</b><div class="x">Partenza</div>`);
+  r.legs.forEach((l,i)=>{
+    if(l.type==="walk"){const toTxt=l.toName?`fino alla fermata <b>${esc(l.toName)}</b>`:`fino a destinazione`;
+      clock+=l.min;if(l.toName)clock+=P.access+P.wait;
+      if(l.toName){add(tt(clock-P.access-P.wait-l.min),"walk",`<span class="x">A piedi ${fmt(l.min)} min · ${Math.round(l.km*P.detour*1000)} m ${toTxt}</span>`);}
+      else{add(tt(clock-l.min),"walk",`<span class="x">A piedi ${fmt(l.min)} min · ${Math.round(l.km*P.detour*1000)} m ${toTxt}</span>`);}
+    }else if(l.type==="ride"){const a=l.stops[0],b=l.stops[l.stops.length-1];
+      add(tt(clock),"",`<span class="lb ${l.line}">${l.line}</span> <b>${esc(a)}</b><div class="x">Direzione ${esc(direction(l.line,a,b))} · ${l.stops.length-1} ${l.stops.length===2?"fermata":"fermate"} · ${fmt(l.min)} min</div>`,LINES[l.line].v);
+      clock+=l.min;
+      const nx=r.legs[i+1];
+      add(tt(clock),nx&&nx.type==="transfer"?"":"walk",`<b>${esc(b)}</b><div class="x">${nx&&nx.type==="transfer"?`Cambia per la <span class="lb ${nx.to}">${nx.to}</span> · circa ${P.transfer} min`:"Scendi ed esci"}</div>`,nx&&nx.type==="transfer"?LINES[l.line].v:LINES[l.line].v);
+      if(!nx||nx.type!=="transfer")clock+=P.access;
+    }else if(l.type==="transfer"){clock+=l.min;}
+  });
+  add(tt(r.total),"end",`<b>${esc(state.to.name)}</b><div class="x">Arrivo · ${fmt(r.total)} min in totale</div>`);
+  gm.hidden=false;gm.href=`https://www.google.com/maps/dir/?api=1&origin=${state.from.lat},${state.from.lon}&destination=${state.to.lat},${state.to.lon}&travelmode=transit`;
+  drawRoute();
+}
+
+// ---------- Mappa ----------
+const NS="http://www.w3.org/2000/svg",svg=$("map");
+const LAT0=45.47,LON0=9.19,K=4000,CX=Math.cos(LAT0*Math.PI/180);
+const X=lon=>(lon-LON0)*CX*K,Y=lat=>(LAT0-lat)*K,LON=x=>x/(CX*K)+LON0,LAT=y=>LAT0-y/K;
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+const gNet=el("g",{}),gRoute=el("g",{}),gSt=el("g",{}),gLbl=el("g",{}),gPin=el("g",{});
+for(const [L,d] of Object.entries(LINES))for(const b of d.br){
+  el("polyline",{points:b.map(s=>X(S[s][1])+","+Y(S[s][0])).join(" "),fill:"none",stroke:`var(${d.v})`,"stroke-width":5,"stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke","data-line":L},gNet);}
+const stEls=[];
+for(const s of Object.keys(LINES_AT)){const ic=LINES_AT[s].length>1;
+  const c=el("circle",{cx:X(S[s][1]),cy:Y(S[s][0]),r:3,fill:"var(--station)",stroke:ic?"var(--fg)":`var(${LINES[LINES_AT[s][0]].v})`,"stroke-width":ic?2.5:2,"vector-effect":"non-scaling-stroke"},gSt);
+  const tx=el("text",{x:X(S[s][1]),y:Y(S[s][0]),class:"lbl","font-weight":ic?600:400},gLbl);tx.textContent=s;
+  const ti=el("title",{},c);ti.textContent=s+" · "+LINES_AT[s].join(", ");
+  stEls.push({s,c,tx,ic});}
+let vb={x:-260,y:-240,w:620,h:460};
+function applyVB(){svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);const sc=vb.w/Math.max(1,svg.clientWidth);
+  for(const o of stEls){o.c.setAttribute("r",(o.ic?5:3.6)*sc);o.tx.setAttribute("font-size",11*sc);o.tx.setAttribute("dx",7*sc);o.tx.setAttribute("dy",3.5*sc);
+    o.tx.style.display=(sc<0.55||o.ic&&sc<1.1||o.onRoute)?"":"none";}
+  gLbl.style.strokeWidth=3*sc+"px";
+  for(const p of gPin.querySelectorAll("[data-pin]"))p.setAttribute("transform",`translate(${p.dataset.x},${p.dataset.y}) scale(${sc})`);
+}
+function drawPins(){gPin.innerHTML="";for(const k of ["from","to"]){const p=state[k];if(!p)continue;
+  const g=el("g",{"data-pin":k},gPin);g.dataset.x=X(p.lon);g.dataset.y=Y(p.lat);
+  el("path",{d:"M0 0 C-4 -9 -11 -13 -11 -21 A11 11 0 1 1 11 -21 C11 -13 4 -9 0 0Z",fill:"var(--accent)",stroke:"var(--map)","stroke-width":2},g);
+  const t=el("text",{x:0,y:-17,"text-anchor":"middle","font-size":12,"font-weight":800,fill:"var(--accent-fg)","font-family":"Archivo, Arial, sans-serif"},g);t.textContent=k==="from"?"A":"B";}
+  applyVB();}
+function drawRoute(){gRoute.innerHTML="";const r=state.routes[state.sel];
+  for(const o of stEls)o.onRoute=false;
+  gNet.style.opacity=r&&r.rides.length?.28:1;gSt.style.opacity=r&&r.rides.length?.6:1;
+  if(r){for(const l of r.legs){
+    if(l.type==="walk")el("line",{x1:X(l.from[1]),y1:Y(l.from[0]),x2:X(l.to[1]),y2:Y(l.to[0]),stroke:"var(--walk)","stroke-width":3,"stroke-dasharray":"2 6","stroke-linecap":"round","vector-effect":"non-scaling-stroke"},gRoute);
+    if(l.type==="ride"){el("polyline",{points:l.stops.map(s=>X(S[s][1])+","+Y(S[s][0])).join(" "),fill:"none",stroke:`var(${LINES[l.line].v})`,"stroke-width":9,"stroke-linecap":"round","stroke-linejoin":"round","vector-effect":"non-scaling-stroke"},gRoute);
+      for(const o of stEls)if(o.s===l.stops[0]||o.s===l.stops[l.stops.length-1])o.onRoute=true;}}}
+  applyVB();}
+function fit(){const pts=[];const r=state.routes[state.sel];
+  if(state.from)pts.push([state.from.lat,state.from.lon]);if(state.to)pts.push([state.to.lat,state.to.lon]);
+  if(r)for(const l of r.rides)for(const s of l.stops)pts.push(S[s]);
+  if(!pts.length)return applyVB();
+  const xs=pts.map(p=>X(p[1])),ys=pts.map(p=>Y(p[0]));let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const ar=svg.clientWidth/Math.max(1,svg.clientHeight)||1.3;let w=Math.max(x1-x0,120)*1.35,h=Math.max(y1-y0,90)*1.35+40;
+  if(w/h>ar)h=w/ar;else w=h*ar;vb={x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2-12,w,h};applyVB();}
+function zoom(f,cx,cy){cx??=vb.x+vb.w/2;cy??=vb.y+vb.h/2;const nw=Math.min(2200,Math.max(40,vb.w*f));const k=nw/vb.w;vb={x:cx-(cx-vb.x)*k,y:cy-(cy-vb.y)*k,w:nw,h:vb.h*k};applyVB();}
+const toSvg=(e)=>{const r=svg.getBoundingClientRect();return [vb.x+(e.clientX-r.left)/r.width*vb.w,vb.y+(e.clientY-r.top)/r.height*vb.h];};
+let drag=null;const ptrs=new Map();
+svg.addEventListener("pointerdown",e=>{svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,vb:{...vb},moved:false,pinch:ptrs.size>1?null:undefined};});
+svg.addEventListener("pointermove",e=>{if(!drag||!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);drag.moved=true;if(drag.pd){const r=svg.getBoundingClientRect();const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;zoom(drag.pd/d,vb.x+(mx-r.left)/r.width*vb.w,vb.y+(my-r.top)/r.height*vb.h);}drag.pd=d;return;}
+  const r=svg.getBoundingClientRect();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)drag.moved=true;
+  if(drag.moved){vb.x=drag.vb.x-dx/r.width*vb.w;vb.y=drag.vb.y-dy/r.height*vb.h;applyVB();}});
+svg.addEventListener("pointerup",e=>{ptrs.delete(e.pointerId);if(!drag)return;const was=drag;if(ptrs.size===0)drag=null;else return;
+  if(!was.moved){const [x,y]=toSvg(e);const k=state.pick;const lat=LAT(y),lon=LON(x);
+    const label="Punto sulla mappa ("+lat.toFixed(4)+", "+lon.toFixed(4)+")";$(k).value=label;
+    setPoint(k,{lat,lon,name:"Punto sulla mappa",q:label},"Punto scelto sulla mappa.");
+    if(k==="from")setPick("to");
+    if(state.from&&state.to)run();}});
+svg.addEventListener("pointercancel",e=>{ptrs.delete(e.pointerId);drag=null;});
+svg.addEventListener("wheel",e=>{e.preventDefault();const [x,y]=toSvg(e);zoom(e.deltaY>0?1.15:1/1.15,x,y);},{passive:false});
+$("zin").onclick=()=>zoom(1/1.4);$("zout").onclick=()=>zoom(1.4);$("zfit").onclick=fit;
+window.addEventListener("resize",()=>applyVB());
+function setPick(k){state.pick=k;for(const b of $("pick").children)b.classList.toggle("on",b.dataset.k===k);}
+for(const b of $("pick").children)b.onclick=()=>setPick(b.dataset.k);
+for(const b of $("pref").children)b.onclick=()=>{state.pref=b.dataset.p;for(const x of $("pref").children)x.classList.toggle("on",x===b);if(state.from&&state.to)run();};
+$("swap").onclick=()=>{const a=$("from").value;$("from").value=$("to").value;$("to").value=a;[state.from,state.to]=[state.to,state.from];
+  const ra=$("res-from").textContent,ca=$("res-from").className;$("res-from").textContent=$("res-to").textContent;$("res-from").className=$("res-to").className;$("res-to").textContent=ra;$("res-to").className=ca;drawPins();if(state.from&&state.to)run();};
+$("f").addEventListener("submit",e=>{e.preventDefault();run();});
+$("time").addEventListener("change",()=>{if(state.routes.length)renderResults();});
+for(const k of ["from","to"])$(k).addEventListener("input",()=>{if(state[k])state[k].q=null;});
+
+// Esempio iniziale
+(function(){const n=new Date();$("time").value=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+  $("from").value="Stazione Centrale";$("to").value="Darsena (Navigli)";applyVB();run();})();
+
+// ---------- Installazione e offline ----------
+if("serviceWorker" in navigator&&isSecureContext)navigator.serviceWorker.register("sw.js").catch(()=>{});
+(function(){
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  let dismissed=false;try{dismissed=localStorage.getItem("install-x")==="1"}catch{}
+  if(standalone||dismissed)return;
+  const box=$("install"),txt=$("install-txt"),btn=$("install-btn");
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  $("install-x").onclick=()=>{box.hidden=true;try{localStorage.setItem("install-x","1")}catch{}};
+  if(ios){txt.textContent="Installa l'app su iPhone: tocca Condividi (il quadrato con la freccia) e poi “Aggiungi alla schermata Home”.";box.hidden=false;}
+  let ev=null;
+  addEventListener("beforeinstallprompt",e=>{e.preventDefault();ev=e;txt.textContent="Installa Metro Milano sulla schermata Home: si apre come un'app e funziona anche offline.";btn.hidden=false;box.hidden=false;});
+  btn.onclick=async()=>{if(!ev)return;ev.prompt();await ev.userChoice.catch(()=>{});ev=null;box.hidden=true;};
+  addEventListener("appinstalled",()=>{box.hidden=true;});
+})();
+</script>
+</body>
+</html>
