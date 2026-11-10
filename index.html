@@ -190,7 +190,7 @@ svg#map{display:block;width:100%;height:min(72vh,660px);background:var(--map);to
     </section>
   </div>
 
-  <p class="foot">Tempi stimati dalla geometria della rete: velocità commerciale di circa 33 km/h, 30 s di sosta per fermata, 2–3 minuti di attesa in banchina, 4 minuti per ogni cambio e 4,8 km/h a piedi. Il servizio metro è attivo indicativamente dalle 5:30 alle 0:30. Per scioperi, chiusure e orari reali conviene controllare ATM prima di partire. Gli indirizzi vengono cercati su OpenStreetMap (serve la connessione; offline funzionano luoghi noti, fermate e tocco sulla mappa): verifica il punto sulla mappa e, se serve, correggilo con un tocco. Dati indirizzi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributori OpenStreetMap</a>.</p>
+  <p class="foot">Tempi stimati dalla geometria della rete: velocità commerciale di circa 33 km/h, 30 s di sosta per fermata, 2–3 minuti di attesa in banchina, 4 minuti per ogni cambio e 4,8 km/h a piedi. Il servizio metro è attivo indicativamente dalle 5:30 alle 0:30. Per scioperi, chiusure e orari reali conviene controllare ATM prima di partire. Gli indirizzi vengono cercati su OpenStreetMap (serve la connessione; offline funzionano luoghi noti, fermate e tocco sulla mappa): verifica il punto sulla mappa e, se serve, correggilo con un tocco. Dati indirizzi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributori OpenStreetMap</a>. Altra città: <a href="londra/">Metro Londra ↗</a></p>
 </div>
 
 <script>
@@ -411,7 +411,7 @@ function renderResults(){
     const strip=r.legs.map(l=>l.type==="walk"?`<span class="w">🚶${fmt(l.min)}′</span>`:l.type==="ride"?`<span class="lb ${l.line}">${l.line}</span>`:"").filter(Boolean).join("<span class='sep'>›</span>");
     c.innerHTML=`<div class="ctop"><span class="mins">${fmt(r.total)}<small>min</small></span>${t?`<span class="clock">${t} → ${clockAdd(t,r.total)}</span>`:""}<span class="tags">${r.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</span></div>
       <div class="strip">${strip}</div>
-      <div class="meta"><span>${r.rides.length?(r.transfers===0?"Nessun cambio":r.transfers+(r.transfers>1?" cambi":" cambio")):"Solo a piedi"}</span><span>${(r.walkKm*P.detour).toFixed(1).replace(".",",")} km a piedi</span>${r.rides.length?`<span>${r.rides.reduce((a,x)=>a+x.stops.length-1,0)} fermate</span>`:""}</div>`;
+      <div class="meta"><span>${r.rides.length?(r.transfers===0?"Nessun cambio":r.transfers+(r.transfers>1?" cambi":" cambio")):"Solo a piedi"}</span><span>${(r.walkKm*P.detour).toFixed(1).replace(".",",")} km a piedi</span>${r.rides.length?`<span>${(n=>n+(n===1?" fermata":" fermate"))(r.rides.reduce((a,x)=>a+x.stops.length-1,0))}</span>`:""}</div>`;
     c.onclick=()=>{state.sel=i;renderResults();fit();};box.appendChild(c);
   });
   const r=state.routes[state.sel];let clock=0;const tt=m=>t?clockAdd(t,m):"+"+fmt(m)+"′";
@@ -441,7 +441,7 @@ const NS="http://www.w3.org/2000/svg",svg=$("map");
 const LAT0=45.47,LON0=9.19,K=4000,CX=Math.cos(LAT0*Math.PI/180);
 const X=lon=>(lon-LON0)*CX*K,Y=lat=>(LAT0-lat)*K,LON=x=>x/(CX*K)+LON0,LAT=y=>LAT0-y/K;
 const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
-const gNet=el("g",{}),gRoute=el("g",{}),gSt=el("g",{}),gLbl=el("g",{}),gPin=el("g",{});
+const gNet=el("g",{}),gRoute=el("g",{}),gLbl=el("g",{}),gSt=el("g",{}),gPin=el("g",{});
 for(const [L,d] of Object.entries(LINES))for(const b of d.br){
   el("polyline",{points:b.map(s=>X(S[s][1])+","+Y(S[s][0])).join(" "),fill:"none",stroke:`var(${d.v})`,"stroke-width":5,"stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke","data-line":L},gNet);}
 const stEls=[];

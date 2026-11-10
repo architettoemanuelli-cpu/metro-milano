@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Metro Londra</title>
+<meta name="description" content="Il percorso migliore con la metropolitana di Londra (Tube, Elizabeth line, DLR) verso qualsiasi indirizzo.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Metro LDN">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: pannello di viaggio a sinistra (form + itinerari), mappa geografica della rete a destra; su telefono si impila. */
+:root{
+  --bg:#f3f4f6; --surface:#ffffff; --fg:#16181d; --muted:#5c6370; --line:#d9dce2; --soft:#e9ebef;
+  --accent:#16181d; --accent-fg:#ffffff; --walk:#7b8290; --warn:#a15c00; --warn-bg:#fff4e0;
+  --m1:#e2231a; --m2:#00964a; --m3:#f4b400; --m4:#0057a8; --m5:#8c6bb1;
+  --map:#fbfbfc; --station:#ffffff;
+  --l-BAK:#B36305;--l-CEN:#E32017;--l-CIR:#FFD300;--l-DIS:#00782A;--l-HAM:#F3A9BB;--l-JUB:#7E868C;--l-MET:#9B0056;--l-NOR:#1a1a1a;--l-PIC:#003688;--l-VIC:#0098D4;--l-WAC:#5fb3a0;--l-ELZ:#6950A1;--l-DLR:#00A4A7;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111317; --surface:#1a1d23; --fg:#eceef2; --muted:#9aa1ad; --line:#2d323b; --soft:#232730;
+  --accent:#eceef2; --accent-fg:#111317; --walk:#8d94a1; --warn:#f0b35a; --warn-bg:#2e2412;
+  --m1:#ff4b40; --m2:#1fbf6a; --m3:#ffc928; --m4:#3d8cff; --m5:#b292dc; --map:#15181d; --station:#1a1d23; --l-BAK:#c9792a;--l-CEN:#ff4b40;--l-CIR:#ffd84a;--l-DIS:#1fa957;--l-HAM:#f3a9bb;--l-JUB:#a0a5a9;--l-MET:#d0408d;--l-NOR:#e6e6e6;--l-PIC:#4a7de0;--l-VIC:#29b6ee;--l-WAC:#95CDBA;--l-ELZ:#9a80d6;--l-DLR:#22c4c7;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111317; --surface:#1a1d23; --fg:#eceef2; --muted:#9aa1ad; --line:#2d323b; --soft:#232730;
+  --accent:#eceef2; --accent-fg:#111317; --walk:#8d94a1; --warn:#f0b35a; --warn-bg:#2e2412;
+  --m1:#ff4b40; --m2:#1fbf6a; --m3:#ffc928; --m4:#3d8cff; --m5:#b292dc; --map:#15181d; --station:#1a1d23; --l-BAK:#c9792a;--l-CEN:#ff4b40;--l-CIR:#ffd84a;--l-DIS:#1fa957;--l-HAM:#f3a9bb;--l-JUB:#a0a5a9;--l-MET:#d0408d;--l-NOR:#e6e6e6;--l-PIC:#4a7de0;--l-VIC:#29b6ee;--l-WAC:#95CDBA;--l-ELZ:#9a80d6;--l-DLR:#22c4c7;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{background:var(--bg);color:var(--fg);margin:0}
+body{-webkit-tap-highlight-color:transparent;font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 32px}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{width:44px;height:44px;border-radius:50%;background:var(--l-PIC);color:#fff;display:grid;place-items:center;
+  font-family:var(--f-display);font-weight:800;font-size:28px;line-height:1;flex:none}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+.chips{display:flex;gap:6px;margin-left:auto}
+.lb{font-family:var(--f-display);font-weight:700;font-size:12px;color:#fff;border-radius:4px;padding:3px 6px;line-height:1;white-space:nowrap;display:inline-block}
+
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.field{display:flex;flex-direction:column;gap:5px;position:relative}
+.field label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.dot{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:11px;color:var(--accent-fg);background:var(--accent)}
+.inrow{display:flex;gap:6px}
+.install{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.install p{margin:0;flex:1;min-width:0}
+.install .btn{padding:7px 12px}
+.gps{white-space:nowrap}
+input[type=text],input[type=time]{font-size:16px;font-family:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input:focus-visible,button:focus-visible{outline:2px solid var(--m4);outline-offset:2px}
+.resolved{font-size:12.5px;color:var(--muted);min-height:1.2em}
+.resolved.ai{color:var(--warn)}
+.resolved.err{color:var(--m1)}
+.sug{position:absolute;top:100%;left:0;right:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-top:4px;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:260px;overflow:auto;padding:4px}
+.sug button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px;font:inherit;color:var(--fg);cursor:pointer}
+.sug button:hover,.sug button.on{background:var(--soft)}
+.sug .k{font-size:11px;color:var(--muted);margin-left:auto}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.row .field{flex:1 1 140px}
+button.btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);flex:1 1 160px}
+button.icon{padding:10px 12px;flex:none}
+button:disabled{opacity:.55;cursor:progress}
+.seg{display:flex;background:var(--soft);border-radius:8px;padding:3px;gap:3px}
+.seg button{flex:1;white-space:nowrap;font:inherit;font-size:13px;border:0;background:none;color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.hint{font-size:12.5px;color:var(--muted)}
+.results{display:flex;flex-direction:column;gap:10px}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--surface);display:flex;flex-direction:column;gap:8px;text-align:left;font:inherit;color:inherit;width:100%}
+.card.on{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.ctop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mins{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1}
+.mins small{font-size:14px;font-weight:700;margin-left:2px}
+.clock{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.tag{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.strip{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.strip .w{font-family:var(--f-mono);font-size:12px}
+.strip .sep{opacity:.5}
+.meta{display:flex;gap:14px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.steps li{display:grid;grid-template-columns:52px 22px minmax(0,1fr);gap:0 10px;min-height:44px}
+.steps .t{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);padding-top:1px;text-align:right}
+.rail{position:relative;display:flex;justify-content:center}
+.rail::before{content:"";position:absolute;top:0;bottom:0;width:6px;border-radius:3px;background:var(--c,var(--walk))}
+.rail.walk::before{width:0;border-left:3px dotted var(--walk);background:none}
+.rail.end::before{display:none}
+.rail i{position:relative;width:14px;height:14px;border-radius:50%;background:var(--station);border:3px solid var(--c,var(--fg));margin-top:2px}
+.steps .d{padding-bottom:12px;min-width:0}
+.steps .d b{font-weight:600}
+.steps .d .x{font-size:12.5px;color:var(--muted)}
+.mapbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;min-width:0}
+@media (min-width:901px){.mapbox{position:sticky;top:max(16px,env(safe-area-inset-top,0px))}}
+svg#map{display:block;width:100%;height:min(72vh,660px);background:var(--map);touch-action:none;cursor:crosshair;user-select:none}
+@media (max-width:900px){svg#map{height:420px}}
+.mapbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mapbar .hint{flex:1 1 200px}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 18px var(--f-body);cursor:pointer}
+.legend{position:absolute;left:12px;bottom:12px;display:flex;gap:5px;flex-wrap:wrap;max-width:60%}
+.lbl{font-family:var(--f-body);fill:var(--fg);paint-order:stroke;stroke:var(--map);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px}
+.foot{font-size:12.5px;color:var(--muted);max-width:80ch}
+.foot a,.gm{color:inherit}
+.empty{color:var(--muted);font-size:14px;padding:6px 2px}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s,box-shadow .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">L</div>
+    <div>
+      <h1>Percorso Metro Londra</h1>
+      <p class="sub">Scrivi dove sei e dove vuoi andare: confronto gli itinerari su tutte le linee della Tube, Elizabeth line e DLR, a piedi compresi.</p>
+    </div>
+    <div class="chips" aria-hidden="true" style="flex-wrap:wrap;max-width:520px"><span class="lb" style="background:var(--l-BAK);color:#fff">Bakerloo</span><span class="lb" style="background:var(--l-CEN);color:#fff">Central</span><span class="lb" style="background:var(--l-CIR);color:#1d1700">Circle</span><span class="lb" style="background:var(--l-DIS);color:#fff">District</span><span class="lb" style="background:var(--l-HAM);color:#3a0d18">H&C</span><span class="lb" style="background:var(--l-JUB);color:#fff">Jubilee</span><span class="lb" style="background:var(--l-MET);color:#fff">Metropolitan</span><span class="lb" style="background:var(--l-NOR);color:var(--map)">Northern</span><span class="lb" style="background:var(--l-PIC);color:#fff">Piccadilly</span><span class="lb" style="background:var(--l-VIC);color:#fff">Victoria</span><span class="lb" style="background:var(--l-WAC);color:#0d2b24">W&C</span><span class="lb" style="background:var(--l-ELZ);color:#fff">Elizabeth</span><span class="lb" style="background:var(--l-DLR);color:#fff">DLR</span></div>
+  </header>
+
+  <div class="install" id="install" hidden>
+    <p id="install-txt"></p>
+    <button type="button" class="btn primary" id="install-btn" hidden style="flex:0 0 auto">Installa</button>
+    <button type="button" class="btn" id="install-x" aria-label="Chiudi">✕</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-label="Pianifica il viaggio">
+      <form id="f" autocomplete="off" style="display:flex;flex-direction:column;gap:14px">
+        <div class="field">
+          <label for="from"><span class="dot">A</span>Partenza</label>
+          <div class="inrow"><input type="text" id="from" placeholder="Indirizzo, luogo o fermata" enterkeyhint="next"><button type="button" class="btn gps" id="gps" title="Usa la mia posizione">◎ Qui</button></div>
+          <div class="sug" id="sug-from" hidden></div>
+          <div class="resolved" id="res-from"></div>
+        </div>
+        <div class="field">
+          <label for="to"><span class="dot">B</span>Arrivo</label>
+          <div class="inrow"><input type="text" id="to" placeholder="es. 221B Baker Street"><button type="button" class="btn icon" id="swap" title="Inverti partenza e arrivo" aria-label="Inverti partenza e arrivo">⇅</button></div>
+          <div class="sug" id="sug-to" hidden></div>
+          <div class="resolved" id="res-to"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:0 1 130px"><label for="time">Partenza alle</label><input type="time" id="time"></div>
+          <button class="btn primary" id="go" type="submit">Trova percorso</button>
+        </div>
+        <div class="field">
+          <label>Priorità</label>
+          <div class="seg" id="pref" role="group" aria-label="Priorità">
+            <button type="button" data-p="fast" class="on">Più veloce</button>
+            <button type="button" data-p="transfers">Meno cambi</button>
+            <button type="button" data-p="walk">Meno a piedi</button>
+          </div>
+        </div>
+      </form>
+      <div id="notice"></div>
+      <div class="results" id="results"></div>
+      <ol class="steps" id="steps" aria-label="Indicazioni"></ol>
+      <a class="gm hint" id="gm" href="#" target="_blank" rel="noopener" hidden>Confronta con gli orari e i disservizi in tempo reale su Google Maps ↗</a>
+    </section>
+
+    <section class="mapbox" aria-label="Mappa della rete">
+      <div class="mapbar">
+        <span class="hint">Tocca la mappa per fissare il punto:</span>
+        <div class="seg" id="pick" style="flex:0 0 auto">
+          <button type="button" data-k="from">A · Partenza</button>
+          <button type="button" data-k="to" class="on">B · Arrivo</button>
+        </div>
+      </div>
+      <svg id="map" role="img" aria-label="Mappa geografica della metropolitana di Londra"></svg>
+      
+      <div class="zoom"><button type="button" id="zin" aria-label="Ingrandisci">+</button><button type="button" id="zout" aria-label="Riduci">−</button><button type="button" id="zfit" aria-label="Adatta al percorso" style="font-size:14px">⤢</button></div>
+    </section>
+  </div>
+
+  <p class="foot">Tempi stimati con i tempi di percorrenza tra stazioni, 2–3 minuti di attesa in banchina, 5 minuti per ogni cambio (i corridoi a Londra sono lunghi) e 4,8 km/h a piedi. Le stazioni vicine sono collegate a piedi (per esempio Bank–Monument). La Tube è attiva indicativamente dalle 5:30 alle 0:30; venerdì e sabato notte la Night Tube copre Victoria, Jubilee, Central, Northern e Piccadilly. Per chiusure e lavori del weekend controlla TfL prima di partire. Paga con carta contactless o Oyster: la tariffa dipende dalle zone attraversate. Indirizzi cercati su OpenStreetMap; dati della rete da un dataset aperto aggiornato a mano con Elizabeth line, estensione Northern e rami DLR. Dati indirizzi © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributori OpenStreetMap</a>. Altra città: <a href="../">Metro Milano ↗</a></p>
+</div>
+
+<script>
+// ---------- Rete ----------
+const NET={"S":{"Acton Town":[51.5028,-0.2801,3.0],"Aldgate":[51.5143,-0.0755,1.0],"Aldgate East":[51.5154,-0.0726,1.0],"All Saints":[51.5107,-0.013,2.0],"Alperton":[51.5407,-0.2997,4.0],"Angel":[51.5322,-0.1058,1.0],"Archway":[51.5653,-0.1353,2.5],"Arnos Grove":[51.6164,-0.1331,4.0],"Arsenal":[51.5586,-0.1059,2.0],"Baker Street":[51.5226,-0.1571,1.0],"Balham":[51.4431,-0.1525,3.0],"Bank":[51.5133,-0.0886,1.0],"Barbican":[51.5204,-0.0979,1.0],"Barking":[51.5396,0.081,4.0],"Barkingside":[51.5856,0.0887,5.0],"Barons Court":[51.4905,-0.2139,2.0],"Bayswater":[51.5121,-0.1879,1.0],"Beckton":[51.5148,0.0613,3.0],"Beckton Park":[51.5087,0.055,3.0],"Becontree":[51.5403,0.127,5.0],"Belsize Park":[51.5504,-0.1642,2.0],"Bethnal Green":[51.527,-0.0549,2.0],"Blackfriars":[51.512,-0.1031,1.0],"Blackhorse Road":[51.5867,-0.0417,3.0],"Blackwall":[51.5079,-0.0066,2.0],"Bond Street":[51.5142,-0.1494,1.0],"Borough":[51.5011,-0.0943,1.0],"Boston Manor":[51.4956,-0.325,4.0],"Bounds Green":[51.6071,-0.1243,3.5],"Bow Church":[51.5273,-0.0208,2.0],"Bow Road":[51.5269,-0.0247,2.0],"Brent Cross":[51.5766,-0.2136,3.0],"Bromley-by-Bow":[51.5248,-0.0119,2.5],"Burnt Oak":[51.6028,-0.2641,4.0],"Caledonian Road":[51.5481,-0.1188,2.0],"Camden Town":[51.5392,-0.1426,2.0],"Canary Wharf":[51.5051,-0.0209,2.0],"Cannon Street":[51.5113,-0.0904,1.0],"Canons Park":[51.6078,-0.2947,5.0],"Chalk Farm":[51.5441,-0.1538,2.0],"Chancery Lane":[51.5185,-0.1111,1.0],"Charing Cross":[51.508,-0.1247,1.0],"Chigwell":[51.6177,0.0755,5.0],"Chiswick Park":[51.4946,-0.2678,3.0],"Clapham Common":[51.4618,-0.1384,2.0],"Clapham North":[51.4649,-0.1299,2.0],"Clapham South":[51.4527,-0.148,2.5],"Colindale":[51.5955,-0.2502,4.0],"Colliers Wood":[51.418,-0.1778,3.0],"Covent Garden":[51.5129,-0.1243,1.0],"Crossharbour":[51.4957,-0.0144,2.0],"Custom House":[51.5095,0.0276,3.0],"Cyprus":[51.5085,0.064,3.0],"Dagenham East":[51.5443,0.1655,5.0],"Dagenham Heathway":[51.5417,0.1469,5.0],"Devons Road":[51.5223,-0.0173,2.0],"Dollis Hill":[51.552,-0.2387,3.0],"Ealing Broadway":[51.5152,-0.3017,3.0],"Ealing Common":[51.5101,-0.2882,3.0],"Earl's Court":[51.492,-0.1973,1.5],"Eastcote":[51.5765,-0.397,5.0],"East Acton":[51.5168,-0.2474,2.0],"East Finchley":[51.5874,-0.165,3.0],"East Ham":[51.5394,0.0518,3.5],"East India":[51.5093,-0.0021,2.5],"East Putney":[51.4586,-0.2112,2.5],"Edgware":[51.6137,-0.275,5.0],"Edgware Road (Bakerloo)":[51.5199,-0.1679,1.0],"Edgware Road (Circle)":[51.5203,-0.17,1.0],"Elephant & Castle":[51.4943,-0.1001,1.5],"Elm Park":[51.5496,0.1977,6.0],"Embankment":[51.5074,-0.1223,1.0],"Euston":[51.5282,-0.1337,1.0],"Euston Square":[51.526,-0.1359,1.0],"Fairlop":[51.596,0.0912,5.0],"Farringdon":[51.5203,-0.1053,1.0],"Finchley Central":[51.6012,-0.1932,4.0],"Finchley Road":[51.5472,-0.1803,2.0],"Finsbury Park":[51.5642,-0.1065,2.0],"Fulham Broadway":[51.4804,-0.195,2.0],"Gallions Reach":[51.5096,0.0716,3.0],"Gants Hill":[51.5765,0.0663,4.0],"Gloucester Road":[51.4945,-0.1829,1.0],"Golders Green":[51.5724,-0.1941,3.0],"Goldhawk Road":[51.5018,-0.2267,2.0],"Goodge Street":[51.5205,-0.1347,1.0],"Grange Hill":[51.6132,0.0923,5.0],"Great Portland Street":[51.5238,-0.1439,1.0],"Greenford":[51.5423,-0.3456,4.0],"Green Park":[51.5067,-0.1428,1.0],"Gunnersbury":[51.4915,-0.2754,3.0],"Hainault":[51.603,0.0933,5.0],"Hammersmith":[51.4936,-0.2251,2.0],"Hampstead":[51.5568,-0.178,2.5],"Hanger Lane":[51.5302,-0.2933,3.0],"Harlesden":[51.5362,-0.2575,3.0],"Harrow & Wealdston":[51.5925,-0.3351,5.0],"Harrow-on-the-Hill":[51.5793,-0.3366,5.0],"Hatton Cross":[51.4669,-0.4227,5.5],"Heathrow Terminals 2 & 3":[51.4713,-0.4524,6.0],"Heathrow Terminal 4":[51.4598,-0.4476,6.0],"Hendon Central":[51.5829,-0.2259,3.5],"Heron Quays":[51.5033,-0.0215,2.0],"High Street Kensington":[51.5009,-0.1925,1.0],"Highbury & Islington":[51.546,-0.104,2.0],"Highgate":[51.5777,-0.1458,3.0],"Hillingdon":[51.5538,-0.4499,6.0],"Holborn":[51.5174,-0.12,1.0],"Holland Park":[51.5075,-0.206,2.0],"Holloway Road":[51.5526,-0.1132,2.0],"Hornchurch":[51.5539,0.2184,6.0],"Hounslow Central":[51.4713,-0.3665,4.0],"Hounslow East":[51.4733,-0.3564,4.0],"Hounslow West":[51.4734,-0.3855,5.0],"Hyde Park Corner":[51.5027,-0.1527,1.0],"Ickenham":[51.5619,-0.4421,6.0],"Island Gardens":[51.4871,-0.0101,2.0],"Kennington":[51.4884,-0.1053,2.0],"Kensal Green":[51.5304,-0.225,2.0],"Kensington (Olympia)":[51.4983,-0.2106,2.0],"Kentish Town":[51.5507,-0.1402,2.0],"Kenton":[51.5816,-0.3162,4.0],"Kew Gardens":[51.477,-0.285,3.5],"Kilburn":[51.5471,-0.2047,2.0],"Kilburn Park":[51.5351,-0.1939,2.0],"Kingsbury":[51.5846,-0.2786,4.0],"King's Cross St Pancras":[51.5308,-0.1238,1.0],"Knightsbridge":[51.5015,-0.1607,1.0],"Ladbroke Grove":[51.5172,-0.2107,2.0],"Lambeth North":[51.4991,-0.1115,1.0],"Lancaster Gate":[51.5119,-0.1756,1.0],"Latimer Road":[51.5139,-0.2172,2.0],"Leicester Square":[51.5113,-0.1281,1.0],"Leyton":[51.5566,-0.0053,3.0],"Leytonstone":[51.5683,0.0083,3.5],"Limehouse":[51.5123,-0.0396,2.0],"Liverpool Street":[51.5178,-0.0823,1.0],"London Bridge":[51.5052,-0.0864,1.0],"Maida Vale":[51.53,-0.1854,2.0],"Manor House":[51.5712,-0.0958,2.5],"Mansion House":[51.5122,-0.094,1.0],"Marble Arch":[51.5136,-0.1586,1.0],"Marylebone":[51.5225,-0.1631,1.0],"Mile End":[51.5249,-0.0332,2.0],"Mill Hill East":[51.6082,-0.2103,4.0],"Monument":[51.5108,-0.0863,1.0],"Moorgate":[51.5186,-0.0886,1.0],"Moor Park":[51.6294,-0.432,6.5],"Morden":[51.4022,-0.1948,4.0],"Mornington Crescent":[51.5342,-0.1387,2.0],"Mudchute":[51.4902,-0.0145,2.0],"Neasden":[51.5542,-0.2503,3.0],"Newbury Park":[51.5756,0.0899,4.0],"Northfields":[51.4995,-0.3142,3.0],"Northolt":[51.5483,-0.3687,5.0],"Northwick Park":[51.5784,-0.3184,4.0],"Northwood":[51.6111,-0.424,6.0],"Northwood Hills":[51.6004,-0.4092,6.0],"North Acton":[51.5237,-0.2597,2.5],"North Ealing":[51.5175,-0.2887,3.0],"North Harrow":[51.5846,-0.3626,5.0],"North Wembley":[51.5621,-0.3034,4.0],"Notting Hill Gate":[51.5094,-0.1967,1.5],"Old Street":[51.5263,-0.0873,1.0],"Osterley":[51.4813,-0.3522,4.0],"Oval":[51.4819,-0.113,2.0],"Oxford Circus":[51.515,-0.1415,1.0],"Paddington":[51.5154,-0.1755,1.0],"Park Royal":[51.527,-0.2841,3.0],"Parsons Green":[51.4753,-0.2011,2.0],"Perivale":[51.5366,-0.3232,4.0],"Picadilly Circus":[51.5098,-0.1342,1.0],"Pimlico":[51.4893,-0.1334,1.0],"Pinner":[51.5926,-0.3805,5.0],"Plaistow":[51.5313,0.0172,3.0],"Poplar":[51.5077,-0.0173,2.0],"Preston Road":[51.572,-0.2954,4.0],"Prince Regent":[51.5093,0.0336,3.0],"Putney Bridge":[51.4682,-0.2089,2.0],"Queen's Park":[51.5341,-0.2047,2.0],"Queensbury":[51.5942,-0.2861,4.0],"Queensway":[51.5107,-0.1877,1.0],"Ravenscourt Park":[51.4942,-0.2359,2.0],"Rayners Lane":[51.5753,-0.3714,5.0],"Redbridge":[51.5763,0.0454,4.0],"Regent's Park":[51.5234,-0.1466,1.0],"Richmond":[51.4633,-0.3013,4.0],"Roding Valley":[51.6171,0.0439,5.0],"Royal Albert":[51.5084,0.0465,3.0],"Royal Oak":[51.519,-0.188,2.0],"Royal Victoria":[51.5091,0.0181,3.0],"Ruislip":[51.5715,-0.4213,6.0],"Ruislip Manor":[51.5732,-0.4125,6.0],"Russell Square":[51.523,-0.1244,1.0],"Seven Sisters":[51.5822,-0.0749,3.0],"Shadwell":[51.5117,-0.056,2.0],"Shepherd's Bush":[51.5046,-0.2187,2.0],"Shepherd's Bush Market":[51.5058,-0.2265,2.0],"Sloane Square":[51.4924,-0.1565,1.0],"Snaresbrook":[51.5808,0.0216,4.0],"Southfields":[51.4454,-0.2066,3.0],"South Ealing":[51.5011,-0.3072,3.0],"South Harrow":[51.5646,-0.3521,5.0],"South Kensington":[51.4941,-0.1738,1.0],"South Kenton":[51.5701,-0.3081,4.0],"South Quay":[51.5007,-0.0191,2.0],"South Ruislip":[51.5569,-0.3988,5.0],"South Wimbledon":[51.4154,-0.1919,3.5],"South Woodford":[51.5917,0.0275,4.0],"Stamford Brook":[51.495,-0.2459,2.0],"Stanmore":[51.6194,-0.3028,5.0],"Stepney Green":[51.5221,-0.047,2.0],"Stockwell":[51.4723,-0.123,2.0],"Stonebridge Park":[51.5439,-0.2759,3.0],"Stratford":[51.5416,-0.0042,3.0],"St. James's Park":[51.4994,-0.1335,1.0],"St. John's Wood":[51.5347,-0.174,2.0],"St. Paul's":[51.5146,-0.0973,1.0],"Sudbury Hill":[51.5569,-0.3366,4.0],"Sudbury Town":[51.5507,-0.3156,4.0],"Swiss Cottage":[51.5432,-0.1738,2.0],"Temple":[51.5111,-0.1141,1.0],"Tooting Bec":[51.4361,-0.1598,3.0],"Tooting Broadway":[51.4275,-0.168,3.0],"Tottenham Court Road":[51.5165,-0.131,1.0],"Tottenham Hale":[51.5882,-0.0594,3.0],"Tower Gateway":[51.5106,-0.0743,1.0],"Tower Hill":[51.5098,-0.0766,1.0],"Tufnell Park":[51.5567,-0.1374,2.0],"Turnham Green":[51.4951,-0.2547,2.5],"Turnpike Lane":[51.5904,-0.1028,3.0],"Upminster":[51.559,0.251,6.0],"Upminster Bridge":[51.5582,0.2343,6.0],"Upney":[51.5385,0.1014,4.0],"Upton Park":[51.5352,0.0343,3.0],"Uxbridge":[51.5463,-0.4786,6.0],"Vauxhall":[51.4861,-0.1253,1.5],"Victoria":[51.4965,-0.1447,1.0],"Walthamstow Central":[51.583,-0.0195,3.0],"Wanstead":[51.5775,0.0288,4.0],"Warren Street":[51.5247,-0.1384,1.0],"Warwick Avenue":[51.5235,-0.1835,2.0],"Waterloo":[51.5036,-0.1143,1.0],"Wembley Central":[51.5519,-0.2963,4.0],"Wembley Park":[51.5635,-0.2795,4.0],"Westbourne Park":[51.521,-0.2011,2.0],"Westferry":[51.5097,-0.0265,2.0],"Westminster":[51.501,-0.1254,1.0],"West Acton":[51.518,-0.2809,3.0],"West Brompton":[51.4872,-0.1953,2.0],"West Finchley":[51.6095,-0.1883,4.0],"West Ham":[51.5287,0.0056,3.0],"West Hampstead":[51.5469,-0.1906,2.0],"West Harrow":[51.5795,-0.3533,5.0],"West India Quay":[51.507,-0.0203,2.0],"West Kensington":[51.4907,-0.2065,2.0],"West Ruislip":[51.5696,-0.4376,6.0],"Whitechapel":[51.5194,-0.0612,2.0],"White City":[51.512,-0.2239,2.0],"Willesden Green":[51.5492,-0.2215,2.5],"Willesden Junction":[51.5326,-0.2478,3.0],"Wimbledon":[51.4214,-0.2064,3.0],"Wimbledon Park":[51.4343,-0.1992,3.0],"Woodford":[51.607,0.0341,4.0],"Woodside Park":[51.6179,-0.1856,4.0],"Wood Green":[51.5975,-0.1097,3.0],"Brixton":[51.4627,-0.1145,2.0],"Amersham":[51.6736,-0.607,10.0],"Bermondsey":[51.4979,-0.0637,2.0],"Chesham":[51.7052,-0.611,10.0],"Chalfont & Latimer":[51.6679,-0.561,9.0],"Chorleywood":[51.6543,-0.5183,8.0],"Rickmansworth":[51.6404,-0.4733,7.0],"Croxley":[51.647,-0.4412,7.0],"Watford":[51.6573,-0.4177,8.0],"Ruislip Gardens":[51.5606,-0.4103,5.0],"High Barnet":[51.6503,-0.1943,5.0],"Totteridge & Whetstone":[51.6302,-0.1791,4.0],"Cockfosters":[51.6517,-0.1496,5.0],"Oakwood":[51.6476,-0.1318,5.0],"Southgate":[51.6322,-0.128,4.0],"Epping":[51.6937,0.1139,6.0],"Theydon Bois":[51.6717,0.1033,6.0],"Debden":[51.6455,0.0838,6.0],"Loughton":[51.6412,0.0558,6.0],"Buckhurst Hill":[51.6266,0.0471,5.0],"Pudding Mill Lane":[51.5343,-0.0139,2.5],"Southwark":[51.501,-0.1052,1.0],"Canada Water":[51.4982,-0.0502,2.0],"Canning Town":[51.5147,0.0082,3.0],"North Greenwich":[51.5005,0.0039,2.5],"Cutty Sark":[51.4827,-0.0096,2.5],"Greenwich":[51.4781,-0.0149,2.5],"Deptford Bridge":[51.474,-0.0216,2.5],"Elverson Road":[51.4693,-0.0174,2.5],"Lewisham":[51.4657,-0.0142,2.5],"Heathrow Terminal 5":[51.47,-0.488,6],"Nine Elms":[51.4799,-0.1286,1.5],"Battersea Power Station":[51.4793,-0.1426,1.5],"Hayes & Harlington":[51.503,-0.4206,5],"Southall":[51.5059,-0.3786,4],"Hanwell":[51.5118,-0.3388,4],"West Ealing":[51.5134,-0.32,3],"Acton Main Line":[51.5172,-0.2668,3],"Woolwich":[51.4915,0.071,4],"Abbey Wood":[51.4908,0.1203,4],"Maryland":[51.546,0.0058,3],"Forest Gate":[51.5494,0.0243,3],"Manor Park":[51.5524,0.0464,3.5],"Ilford":[51.559,0.0697,4],"Seven Kings":[51.564,0.097,4],"Goodmayes":[51.5655,0.111,4],"Chadwell Heath":[51.568,0.129,5],"Romford":[51.575,0.1832,6],"Gidea Park":[51.5819,0.2059,6],"Harold Wood":[51.5928,0.2333,6],"Brentwood":[51.6136,0.2995,9],"Shenfield":[51.6308,0.3297,9],"West Silvertown":[51.5028,0.0222,3],"Pontoon Dock":[51.5022,0.0322,3],"London City Airport":[51.5036,0.049,3],"King George V":[51.5019,0.0627,3],"Woolwich Arsenal":[51.49,0.0691,4],"Star Lane":[51.5208,0.0042,2.5],"Abbey Road":[51.5319,0.0037,3],"Stratford High Street":[51.5381,-0.0004,3],"Stratford International":[51.5455,-0.0089,2.5],"Langdon Park":[51.5151,-0.0141,2]},"E":[["BAK","Baker Street","Marylebone",1],["BAK","Baker Street","Regent's Park",2],["BAK","Charing Cross","Embankment",1],["BAK","Charing Cross","Picadilly Circus",2],["BAK","Edgware Road (Bakerloo)","Marylebone",2],["BAK","Edgware Road (Bakerloo)","Paddington",3],["BAK","Elephant & Castle","Lambeth North",3],["BAK","Embankment","Waterloo",2],["BAK","Harlesden","Stonebridge Park",2],["BAK","Harlesden","Willesden Junction",2],["BAK","Harrow & Wealdston","Kenton",2],["BAK","Kensal Green","Queen's Park",3],["BAK","Kensal Green","Willesden Junction",3],["BAK","Kenton","South Kenton",2],["BAK","Kilburn Park","Maida Vale",2],["BAK","Kilburn Park","Queen's Park",2],["BAK","Lambeth North","Waterloo",1],["BAK","Maida Vale","Warwick Avenue",1],["BAK","North Wembley","South Kenton",2],["BAK","North Wembley","Wembley Central",2],["BAK","Oxford Circus","Picadilly Circus",2],["BAK","Oxford Circus","Regent's Park",2],["BAK","Paddington","Warwick Avenue",2],["BAK","Stonebridge Park","Wembley Central",3],["CEN","Bank","Liverpool Street",2],["CEN","Bank","St. Paul's",2],["CEN","Barkingside","Fairlop",2],["CEN","Barkingside","Newbury Park",2],["CEN","Bethnal Green","Liverpool Street",3],["CEN","Bethnal Green","Mile End",2],["CEN","Bond Street","Marble Arch",1],["CEN","Bond Street","Oxford Circus",1],["CEN","Buckhurst Hill","Loughton",3],["CEN","Buckhurst Hill","Woodford",3],["CEN","Chancery Lane","Holborn",1],["CEN","Chancery Lane","St. Paul's",2],["CEN","Chigwell","Grange Hill",2],["CEN","Chigwell","Roding Valley",2],["CEN","Debden","Loughton",2],["CEN","Debden","Theydon Bois",3],["CEN","Ealing Broadway","West Acton",3],["CEN","East Acton","North Acton",2],["CEN","East Acton","White City",3],["CEN","Epping","Theydon Bois",2],["CEN","Fairlop","Hainault",2],["CEN","Gants Hill","Newbury Park",3],["CEN","Gants Hill","Redbridge",2],["CEN","Grange Hill","Hainault",3],["CEN","Greenford","Northolt",2],["CEN","Greenford","Perivale",2],["CEN","Hanger Lane","North Acton",3],["CEN","Hanger Lane","Perivale",2],["CEN","Holborn","Tottenham Court Road",2],["CEN","Holland Park","Notting Hill Gate",2],["CEN","Holland Park","Shepherd's Bush",1],["CEN","Lancaster Gate","Marble Arch",3],["CEN","Lancaster Gate","Queensway",1],["CEN","Leyton","Leytonstone",3],["CEN","Leyton","Stratford",2],["CEN","Leytonstone","Snaresbrook",2],["CEN","Leytonstone","Wanstead",2],["CEN","Mile End","Stratford",4],["CEN","Northolt","South Ruislip",3],["CEN","North Acton","West Acton",2],["CEN","Notting Hill Gate","Queensway",2],["CEN","Oxford Circus","Tottenham Court Road",2],["CEN","Redbridge","Wanstead",2],["CEN","Roding Valley","Woodford",3],["CEN","Ruislip Gardens","South Ruislip",1],["CEN","Ruislip Gardens","West Ruislip",3],["CEN","Shepherd's Bush","White City",3],["CEN","Snaresbrook","South Woodford",2],["CEN","South Woodford","Woodford",2],["CIR","Aldgate","Liverpool Street",2],["CIR","Aldgate","Tower Hill",4],["CIR","Baker Street","Edgware Road (Circle)",3],["CIR","Baker Street","Great Portland Street",3],["CIR","Barbican","Farringdon",1],["CIR","Barbican","Moorgate",2],["CIR","Bayswater","Notting Hill Gate",2],["CIR","Bayswater","Paddington",2],["CIR","Blackfriars","Mansion House",1],["CIR","Blackfriars","Temple",2],["CIR","Cannon Street","Mansion House",1],["CIR","Cannon Street","Monument",2],["CIR","Edgware Road (Circle)","Paddington",3],["CIR","Embankment","Temple",2],["CIR","Embankment","Westminster",2],["CIR","Euston Square","Great Portland Street",2],["CIR","Euston Square","King's Cross St Pancras",2],["CIR","Farringdon","King's Cross St Pancras",4],["CIR","Gloucester Road","High Street Kensington",4],["CIR","Gloucester Road","South Kensington",1],["CIR","High Street Kensington","Notting Hill Gate",3],["CIR","Liverpool Street","Moorgate",2],["CIR","Monument","Tower Hill",2],["CIR","Sloane Square","South Kensington",2],["CIR","Sloane Square","Victoria",2],["CIR","St. James's Park","Victoria",2],["CIR","St. James's Park","Westminster",2],["DIS","Aldgate East","Tower Hill",2],["DIS","Aldgate East","Whitechapel",2],["DIS","Barking","East Ham",4],["DIS","Barking","Upney",2],["DIS","Barons Court","Hammersmith",1],["DIS","Barons Court","West Kensington",2],["DIS","Bayswater","Notting Hill Gate",2],["DIS","Bayswater","Paddington",2],["DIS","Becontree","Dagenham Heathway",3],["DIS","Becontree","Upney",2],["DIS","Blackfriars","Mansion House",1],["DIS","Blackfriars","Temple",2],["DIS","Bow Road","Bromley-by-Bow",2],["DIS","Bow Road","Mile End",1],["DIS","Bromley-by-Bow","West Ham",2],["DIS","Cannon Street","Mansion House",1],["DIS","Cannon Street","Monument",2],["DIS","Chiswick Park","Acton Town",2],["DIS","Chiswick Park","Turnham Green",2],["DIS","Dagenham East","Dagenham Heathway",4],["DIS","Dagenham East","Elm Park",3],["DIS","Ealing Broadway","Ealing Common",4],["DIS","Ealing Common","Acton Town",2],["DIS","Earl's Court","Gloucester Road",3],["DIS","Earl's Court","High Street Kensington",3],["DIS","Earl's Court","Kensington (Olympia)",2],["DIS","Earl's Court","West Brompton",2],["DIS","Earl's Court","West Kensington",1],["DIS","East Ham","Upton Park",2],["DIS","East Putney","Putney Bridge",2],["DIS","East Putney","Southfields",2],["DIS","Edgware Road (Circle)","Paddington",3],["DIS","Elm Park","Hornchurch",2],["DIS","Embankment","Temple",2],["DIS","Embankment","Westminster",2],["DIS","Fulham Broadway","Parsons Green",2],["DIS","Fulham Broadway","West Brompton",1],["DIS","Gloucester Road","South Kensington",1],["DIS","Gunnersbury","Kew Gardens",3],["DIS","Gunnersbury","Turnham Green",3],["DIS","Hammersmith","Ravenscourt Park",2],["DIS","High Street Kensington","Notting Hill Gate",3],["DIS","Hornchurch","Upminster Bridge",2],["DIS","Kew Gardens","Richmond",3],["DIS","Mile End","Stepney Green",2],["DIS","Monument","Tower Hill",2],["DIS","Parsons Green","Putney Bridge",3],["DIS","Plaistow","Upton Park",2],["DIS","Plaistow","West Ham",2],["DIS","Ravenscourt Park","Stamford Brook",2],["DIS","Sloane Square","South Kensington",2],["DIS","Sloane Square","Victoria",2],["DIS","Southfields","Wimbledon Park",3],["DIS","Stamford Brook","Turnham Green",1],["DIS","Stepney Green","Whitechapel",3],["DIS","St. James's Park","Victoria",2],["DIS","St. James's Park","Westminster",2],["DIS","Upminster","Upminster Bridge",3],["DIS","Wimbledon","Wimbledon Park",3],["DLR","All Saints","Poplar",2],["DLR","Bank","Shadwell",2],["DLR","Beckton","Gallions Reach",2],["DLR","Beckton Park","Cyprus",2],["DLR","Beckton Park","Royal Albert",2],["DLR","Blackwall","East India",2],["DLR","Blackwall","Poplar",2],["DLR","Bow Church","Devons Road",2],["DLR","Bow Church","Pudding Mill Lane",2],["DLR","Canary Wharf","Heron Quays",2],["DLR","Canary Wharf","West India Quay",2],["DLR","Canning Town","East India",2],["DLR","Canning Town","Royal Victoria",2],["DLR","Crossharbour","Mudchute",2],["DLR","Crossharbour","South Quay",2],["DLR","Custom House","Prince Regent",2],["DLR","Custom House","Royal Victoria",2],["DLR","Cutty Sark","Greenwich",2],["DLR","Cutty Sark","Island Gardens",2],["DLR","Cyprus","Gallions Reach",2],["DLR","Deptford Bridge","Elverson Road",2],["DLR","Deptford Bridge","Greenwich",2],["DLR","Elverson Road","Lewisham",2],["DLR","Heron Quays","South Quay",2],["DLR","Island Gardens","Mudchute",2],["DLR","Limehouse","Shadwell",2],["DLR","Limehouse","Westferry",2],["DLR","Poplar","Westferry",2],["DLR","Poplar","West India Quay",2],["DLR","Prince Regent","Royal Albert",2],["DLR","Pudding Mill Lane","Stratford",2],["DLR","Shadwell","Tower Gateway",2],["DLR","Westferry","West India Quay",2],["HAM","Aldgate East","Liverpool Street",4],["HAM","Aldgate East","Whitechapel",2],["HAM","Baker Street","Edgware Road (Circle)",3],["HAM","Baker Street","Great Portland Street",3],["HAM","Barbican","Farringdon",1],["HAM","Barbican","Moorgate",2],["HAM","Barking","East Ham",4],["HAM","Bow Road","Bromley-by-Bow",2],["HAM","Bow Road","Mile End",1],["HAM","Bromley-by-Bow","West Ham",2],["HAM","East Ham","Upton Park",2],["HAM","Edgware Road (Circle)","Paddington",4],["HAM","Euston Square","Great Portland Street",2],["HAM","Euston Square","King's Cross St Pancras",2],["HAM","Farringdon","King's Cross St Pancras",4],["HAM","Goldhawk Road","Hammersmith",2],["HAM","Goldhawk Road","Shepherd's Bush Market",1],["HAM","Ladbroke Grove","Latimer Road",1],["HAM","Ladbroke Grove","Westbourne Park",2],["HAM","Latimer Road","Shepherd's Bush Market",2],["HAM","Liverpool Street","Moorgate",2],["HAM","Mile End","Stepney Green",2],["HAM","Paddington","Royal Oak",1],["HAM","Plaistow","Upton Park",2],["HAM","Plaistow","West Ham",2],["HAM","Royal Oak","Westbourne Park",2],["HAM","Stepney Green","Whitechapel",3],["JUB","Baker Street","Bond Street",2],["JUB","Baker Street","St. John's Wood",4],["JUB","Bermondsey","Canada Water",2],["JUB","Bermondsey","London Bridge",3],["JUB","Bond Street","Green Park",2],["JUB","Canada Water","Canary Wharf",3],["JUB","Canary Wharf","North Greenwich",3],["JUB","Canning Town","North Greenwich",3],["JUB","Canning Town","West Ham",3],["JUB","Canons Park","Queensbury",2],["JUB","Canons Park","Stanmore",2],["JUB","Dollis Hill","Neasden",2],["JUB","Dollis Hill","Willesden Green",2],["JUB","Finchley Road","Swiss Cottage",2],["JUB","Finchley Road","West Hampstead",1],["JUB","Green Park","Westminster",3],["JUB","Kilburn","West Hampstead",2],["JUB","Kilburn","Willesden Green",2],["JUB","Kingsbury","Queensbury",2],["JUB","Kingsbury","Wembley Park",4],["JUB","London Bridge","Southwark",2],["JUB","Neasden","Wembley Park",4],["JUB","Southwark","Waterloo",1],["JUB","Stratford","West Ham",3],["JUB","St. John's Wood","Swiss Cottage",1],["JUB","Waterloo","Westminster",2],["MET","Aldgate","Liverpool Street",2],["MET","Amersham","Chalfont & Latimer",4],["MET","Baker Street","Finchley Road",6],["MET","Baker Street","Great Portland Street",3],["MET","Barbican","Farringdon",1],["MET","Barbican","Moorgate",2],["MET","Chalfont & Latimer","Chesham",8],["MET","Chalfont & Latimer","Chorleywood",4],["MET","Chorleywood","Rickmansworth",4],["MET","Croxley","Moor Park",4],["MET","Croxley","Watford",3],["MET","Eastcote","Rayners Lane",2],["MET","Eastcote","Ruislip Manor",2],["MET","Euston Square","Great Portland Street",2],["MET","Euston Square","King's Cross St Pancras",2],["MET","Farringdon","King's Cross St Pancras",4],["MET","Finchley Road","Wembley Park",7],["MET","Harrow-on-the-Hill","Northwick Park",2],["MET","Harrow-on-the-Hill","North Harrow",3],["MET","Harrow-on-the-Hill","West Harrow",2],["MET","Hillingdon","Ickenham",2],["MET","Hillingdon","Uxbridge",3],["MET","Ickenham","Ruislip",3],["MET","Liverpool Street","Moorgate",2],["MET","Moor Park","Northwood",3],["MET","Moor Park","Rickmansworth",4],["MET","Northwick Park","Preston Road",2],["MET","Northwood","Northwood Hills",2],["MET","Northwood Hills","Pinner",2],["MET","North Harrow","Pinner",3],["MET","Preston Road","Wembley Park",3],["MET","Rayners Lane","West Harrow",3],["MET","Ruislip","Ruislip Manor",2],["NOR","Angel","King's Cross St Pancras",2],["NOR","Angel","Old Street",3],["NOR","Archway","Highgate",3],["NOR","Archway","Tufnell Park",2],["NOR","Balham","Clapham South",2],["NOR","Balham","Tooting Bec",1],["NOR","Bank","London Bridge",2],["NOR","Bank","Moorgate",3],["NOR","Belsize Park","Chalk Farm",2],["NOR","Belsize Park","Hampstead",2],["NOR","Borough","Elephant & Castle",1],["NOR","Borough","London Bridge",2],["NOR","Brent Cross","Golders Green",3],["NOR","Brent Cross","Hendon Central",2],["NOR","Burnt Oak","Colindale",2],["NOR","Burnt Oak","Edgware",3],["NOR","Camden Town","Chalk Farm",2],["NOR","Camden Town","Euston",3],["NOR","Camden Town","Kentish Town",2],["NOR","Camden Town","Mornington Crescent",1],["NOR","Charing Cross","Embankment",1],["NOR","Charing Cross","Leicester Square",2],["NOR","Clapham Common","Clapham North",2],["NOR","Clapham Common","Clapham South",2],["NOR","Clapham North","Stockwell",1],["NOR","Colindale","Hendon Central",3],["NOR","Colliers Wood","South Wimbledon",2],["NOR","Colliers Wood","Tooting Broadway",2],["NOR","East Finchley","Finchley Central",4],["NOR","East Finchley","Highgate",2],["NOR","Elephant & Castle","Kennington",2],["NOR","Embankment","Waterloo",2],["NOR","Euston","King's Cross St Pancras",2],["NOR","Euston","Mornington Crescent",2],["NOR","Euston","Warren Street",1],["NOR","Finchley Central","Mill Hill East",3],["NOR","Finchley Central","West Finchley",2],["NOR","Golders Green","Hampstead",4],["NOR","Goodge Street","Tottenham Court Road",1],["NOR","Goodge Street","Warren Street",2],["NOR","High Barnet","Totteridge & Whetstone",3],["NOR","Kennington","Oval",2],["NOR","Kennington","Waterloo",3],["NOR","Kentish Town","Tufnell Park",2],["NOR","Leicester Square","Tottenham Court Road",1],["NOR","Moorgate","Old Street",1],["NOR","Morden","South Wimbledon",4],["NOR","Oval","Stockwell",3],["NOR","Tooting Bec","Tooting Broadway",2],["NOR","Totteridge & Whetstone","Woodside Park",3],["NOR","West Finchley","Woodside Park",1],["PIC","Acton Town","Ealing Common",2],["PIC","Acton Town","South Ealing",4],["PIC","Acton Town","Turnham Green",3],["PIC","Alperton","Park Royal",3],["PIC","Alperton","Sudbury Town",2],["PIC","Arnos Grove","Bounds Green",3],["PIC","Arnos Grove","Southgate",3],["PIC","Arsenal","Finsbury Park",2],["PIC","Arsenal","Holloway Road",1],["PIC","Barons Court","Earl's Court",3],["PIC","Barons Court","Hammersmith",2],["PIC","Boston Manor","Northfields",2],["PIC","Boston Manor","Osterley",3],["PIC","Bounds Green","Wood Green",2],["PIC","Caledonian Road","Holloway Road",2],["PIC","Caledonian Road","King's Cross St Pancras",5],["PIC","Cockfosters","Oakwood",4],["PIC","Covent Garden","Holborn",1],["PIC","Covent Garden","Leicester Square",1],["PIC","Ealing Common","North Ealing",3],["PIC","Earl's Court","Gloucester Road",2],["PIC","Eastcote","Rayners Lane",2],["PIC","Eastcote","Ruislip Manor",2],["PIC","Finsbury Park","Manor House",2],["PIC","Gloucester Road","South Kensington",1],["PIC","Green Park","Hyde Park Corner",2],["PIC","Green Park","Picadilly Circus",1],["PIC","Hammersmith","Turnham Green",2],["PIC","Hatton Cross","Heathrow Terminals 2 & 3",3],["PIC","Hatton Cross","Heathrow Terminal 4",3],["PIC","Hatton Cross","Hounslow West",4],["PIC","Heathrow Terminals 2 & 3","Heathrow Terminal 4",5],["PIC","Hillingdon","Ickenham",2],["PIC","Hillingdon","Uxbridge",3],["PIC","Holborn","Russell Square",2],["PIC","Hounslow Central","Hounslow East",2],["PIC","Hounslow Central","Hounslow West",2],["PIC","Hounslow East","Osterley",2],["PIC","Hyde Park Corner","Knightsbridge",2],["PIC","Ickenham","Ruislip",3],["PIC","King's Cross St Pancras","Russell Square",2],["PIC","Knightsbridge","South Kensington",3],["PIC","Leicester Square","Picadilly Circus",2],["PIC","Manor House","Turnpike Lane",3],["PIC","Northfields","South Ealing",1],["PIC","North Ealing","Park Royal",2],["PIC","Oakwood","Southgate",3],["PIC","Rayners Lane","South Harrow",3],["PIC","Ruislip","Ruislip Manor",2],["PIC","South Harrow","Sudbury Hill",2],["PIC","Sudbury Hill","Sudbury Town",3],["PIC","Turnpike Lane","Wood Green",2],["VIC","Blackhorse Road","Tottenham Hale",2],["VIC","Blackhorse Road","Walthamstow Central",2],["VIC","Brixton","Stockwell",2],["VIC","Euston","King's Cross St Pancras",2],["VIC","Euston","Warren Street",1],["VIC","Finsbury Park","Highbury & Islington",2],["VIC","Finsbury Park","Seven Sisters",4],["VIC","Green Park","Oxford Circus",2],["VIC","Green Park","Victoria",2],["VIC","Highbury & Islington","King's Cross St Pancras",4],["VIC","Oxford Circus","Warren Street",2],["VIC","Pimlico","Vauxhall",1],["VIC","Pimlico","Victoria",3],["VIC","Seven Sisters","Tottenham Hale",3],["VIC","Stockwell","Vauxhall",3],["WAC","Bank","Waterloo",4],["PIC","Heathrow Terminals 2 & 3","Heathrow Terminal 5",5],["NOR","Kennington","Nine Elms",2],["NOR","Nine Elms","Battersea Power Station",2],["DLR","Canning Town","West Silvertown",null],["DLR","West Silvertown","Pontoon Dock",null],["DLR","Pontoon Dock","London City Airport",null],["DLR","London City Airport","King George V",null],["DLR","King George V","Woolwich Arsenal",null],["DLR","Canning Town","Star Lane",null],["DLR","Star Lane","West Ham",null],["DLR","West Ham","Abbey Road",null],["DLR","Abbey Road","Stratford High Street",null],["DLR","Stratford High Street","Stratford",null],["DLR","Stratford","Stratford International",null],["DLR","Devons Road","Langdon Park",null],["DLR","Langdon Park","All Saints",null],["ELZ","Heathrow Terminal 5","Heathrow Terminals 2 & 3",null],["ELZ","Heathrow Terminals 2 & 3","Hayes & Harlington",null],["ELZ","Hayes & Harlington","Southall",null],["ELZ","Southall","Hanwell",null],["ELZ","Hanwell","West Ealing",null],["ELZ","West Ealing","Ealing Broadway",null],["ELZ","Ealing Broadway","Acton Main Line",null],["ELZ","Acton Main Line","Paddington",null],["ELZ","Heathrow Terminal 4","Heathrow Terminals 2 & 3",6],["ELZ","Paddington","Bond Street",null],["ELZ","Bond Street","Tottenham Court Road",null],["ELZ","Tottenham Court Road","Farringdon",null],["ELZ","Farringdon","Liverpool Street",null],["ELZ","Liverpool Street","Whitechapel",null],["ELZ","Whitechapel","Canary Wharf",null],["ELZ","Canary Wharf","Custom House",null],["ELZ","Custom House","Woolwich",null],["ELZ","Woolwich","Abbey Wood",null],["ELZ","Whitechapel","Stratford",null],["ELZ","Stratford","Maryland",null],["ELZ","Maryland","Forest Gate",null],["ELZ","Forest Gate","Manor Park",null],["ELZ","Manor Park","Ilford",null],["ELZ","Ilford","Seven Kings",null],["ELZ","Seven Kings","Goodmayes",null],["ELZ","Goodmayes","Chadwell Heath",null],["ELZ","Chadwell Heath","Romford",null],["ELZ","Romford","Gidea Park",null],["ELZ","Gidea Park","Harold Wood",null],["ELZ","Harold Wood","Brentwood",null],["ELZ","Brentwood","Shenfield",null]]};
+const S={},ZONE={};for(const [k,v] of Object.entries(NET.S)){S[k]=[v[0],v[1]];ZONE[k]=v[2];}
+const LINES={BAK:{v:"--l-BAK",name:"Bakerloo",fg:"#fff"},CEN:{v:"--l-CEN",name:"Central",fg:"#fff"},CIR:{v:"--l-CIR",name:"Circle",fg:"#1d1700"},DIS:{v:"--l-DIS",name:"District",fg:"#fff"},HAM:{v:"--l-HAM",name:"H&C",fg:"#3a0d18"},JUB:{v:"--l-JUB",name:"Jubilee",fg:"#fff"},MET:{v:"--l-MET",name:"Metropolitan",fg:"#fff"},NOR:{v:"--l-NOR",name:"Northern",fg:"var(--map)"},PIC:{v:"--l-PIC",name:"Piccadilly",fg:"#fff"},VIC:{v:"--l-VIC",name:"Victoria",fg:"#fff"},WAC:{v:"--l-WAC",name:"W&C",fg:"#0d2b24"},ELZ:{v:"--l-ELZ",name:"Elizabeth",fg:"#fff"},DLR:{v:"--l-DLR",name:"DLR",fg:"#fff"}};
+const PLACES=[["Big Ben e Westminster", 51.5007, -0.1246], ["London Eye", 51.5033, -0.1196], ["Buckingham Palace", 51.5014, -0.1419], ["Tower of London", 51.5081, -0.0759], ["Tower Bridge", 51.5055, -0.0754], ["St Paul's Cathedral", 51.5138, -0.0984], ["British Museum", 51.5194, -0.127], ["National Gallery (Trafalgar Square)", 51.5089, -0.1283], ["Piccadilly Circus", 51.5101, -0.134], ["Covent Garden", 51.5117, -0.124], ["Oxford Circus", 51.5152, -0.1418], ["Soho", 51.5136, -0.1365], ["Leicester Square", 51.5103, -0.13], ["Camden Market", 51.5415, -0.146], ["Notting Hill (Portobello Road)", 51.5155, -0.205], ["Hyde Park", 51.5073, -0.1657], ["Natural History Museum", 51.4967, -0.1764], ["Science Museum", 51.4978, -0.1745], ["Victoria and Albert Museum", 51.4966, -0.1722], ["Harrods", 51.4994, -0.1632], ["Kensington Palace", 51.5058, -0.1877], ["Tate Modern", 51.5076, -0.0994], ["Borough Market", 51.5055, -0.091], ["The Shard", 51.5045, -0.0865], ["Shoreditch", 51.5265, -0.078], ["Brick Lane", 51.5218, -0.0717], ["Greenwich (Royal Observatory)", 51.4769, -0.0005], ["Cutty Sark", 51.4826, -0.0096], ["The O2", 51.503, 0.0032], ["Canary Wharf", 51.5054, -0.0235], ["Wembley Stadium", 51.556, -0.2796], ["Emirates Stadium (Arsenal)", 51.5549, -0.1084], ["Tottenham Hotspur Stadium", 51.6043, -0.0664], ["Stamford Bridge (Chelsea)", 51.4817, -0.191], ["Abbey Road Studios", 51.532, -0.1779], ["ZSL London Zoo", 51.5353, -0.1534], ["Kew Gardens", 51.4787, -0.2956], ["Madame Tussauds", 51.5229, -0.1551], ["221B Baker Street (Sherlock Holmes Museum)", 51.5237, -0.1585], ["Hampstead Heath", 51.5608, -0.1631], ["Richmond", 51.4613, -0.3037], ["Westfield Stratford City", 51.543, -0.006], ["Queen Elizabeth Olympic Park", 51.543, -0.015], ["Westfield London (White City)", 51.5072, -0.2215], ["Battersea Power Station (centro commerciale)", 51.482, -0.1445], ["Stazione King's Cross St Pancras", 51.5308, -0.1238], ["Stazione Victoria", 51.4952, -0.1441], ["Stazione Waterloo", 51.5031, -0.1132], ["Stazione Paddington", 51.5154, -0.1755], ["Stazione Liverpool Street", 51.5178, -0.0823], ["Stazione Euston", 51.5282, -0.1337], ["Aeroporto di Heathrow", 51.47, -0.4543], ["Aeroporto London City", 51.5048, 0.0495], ["Wimbledon (All England Club)", 51.434, -0.214], ["Portobello Road Market", 51.517, -0.206]].map(([n,a,o])=>({name:n,lat:a,lon:o,kind:"luogo"}));
+
+// grafo
+const ADJ={},EDGE={};
+for(const [L,a,b,t] of NET.E){ADJ[L]??={};(ADJ[L][a]??=new Set()).add(b);(ADJ[L][b]??=new Set()).add(a);if(t)EDGE[L+"|"+a+"|"+b]=EDGE[L+"|"+b+"|"+a]=t;}
+const LINES_AT={};for(const L in ADJ)for(const s in ADJ[L])(LINES_AT[s]??=[]).push(L);
+const badge=L=>`<span class="lb" style="background:var(${LINES[L].v});color:${LINES[L].fg}">${LINES[L].name}</span>`;
+
+const R=6371;
+function km(a,b){const t=Math.PI/180,dl=(b[0]-a[0])*t,dn=(b[1]-a[1])*t;const h=Math.sin(dl/2)**2+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+const P={speed:33,dwell:.5,wait:2.5,transfer:5,walk:4.8,detour:1.25,access:1};
+const walkMin=d=>d*P.detour/P.walk*60;
+const NEARBY={};{const ks=Object.keys(LINES_AT);for(const a of ks)for(const b of ks)if(a!==b&&km(S[a],S[b])<0.35)(NEARBY[a]??=[]).push(b);}
+const rideMin=(a,b,L)=>EDGE[L+"|"+a+"|"+b]??(km(S[a],S[b])/(L==="ELZ"?50:L==="DLR"?30:33)*60+P.dwell);
+
+function plan(o,dst,profile){
+  const W={fast:{walk:1,tr:0},transfers:{walk:1,tr:14},walk:{walk:2.6,tr:0}}[profile];
+  const near=pt=>{const l=Object.keys(LINES_AT).map(s=>({s,d:km(pt,S[s])})).sort((a,b)=>a.d-b.d);return l.filter((x,i)=>i<3||x.d<1.6).slice(0,12);};
+  const no=near(o), nd=near(dst); const exitMap=new Map(nd.map(x=>[x.s,x.d]));
+  const dist=new Map(),prev=new Map(),done=new Set();const Q=[];
+  const push=(k,c,p)=>{if(c<(dist.get(k)??Infinity)){dist.set(k,c);prev.set(k,p);Q.push([c,k]);}};
+  for(const x of no)for(const L of LINES_AT[x.s])push(x.s+"|"+L,walkMin(x.d)*W.walk+P.access+P.wait,"SRC");
+  let best=walkMin(km(o,dst))*W.walk,bestK="DIRECT";
+  while(Q.length){Q.sort((a,b)=>a[0]-b[0]);const [c,k]=Q.shift();if(done.has(k))continue;done.add(k);if(c>=best)break;
+    const [s,L]=k.split("|");
+    if(exitMap.has(s)){const tot=c+walkMin(exitMap.get(s))*W.walk+P.access;if(tot<best){best=tot;bestK=k;}}
+    for(const n of ADJ[L][s])push(n+"|"+L,c+rideMin(s,n,L),k);
+    for(const s2 of NEARBY[s]||[])for(const L2 of LINES_AT[s2])if(L2!==L)push(s2+"|"+L2,c+P.transfer+walkMin(km(S[s],S[s2]))+W.tr,k);
+    for(const L2 of LINES_AT[s])if(L2!==L)push(s+"|"+L2,c+P.transfer+W.tr,k);
+  }
+  if(bestK==="DIRECT")return {direct:true,legs:[{type:"walk",from:o,to:dst,min:walkMin(km(o,dst)),km:km(o,dst)}]};
+  const nodes=[];let k=bestK;while(k!=="SRC"){nodes.unshift(k);k=prev.get(k);}
+  return build(o,dst,nodes);
+}
+function build(o,dst,nodes){
+  const legs=[];const st=nodes.map(n=>n.split("|"));
+  const first=st[0][0];legs.push({type:"walk",from:o,to:S[first],toName:first,km:km(o,S[first]),min:walkMin(km(o,S[first]))});
+  let cur=null;
+  for(let i=0;i<st.length;i++){const [s,L]=st[i];
+    if(!cur||cur.line!==L){ if(cur){const pv=cur.stops[cur.stops.length-1];const wk=pv===s?0:walkMin(km(S[pv],S[s]));legs.push(cur);legs.push({type:"transfer",at:s,fromSt:pv,walk:wk,min:P.transfer+wk,from:cur.line,to:L});} cur={type:"ride",line:L,stops:[s],min:0}; }
+    else{cur.min+=rideMin(cur.stops[cur.stops.length-1],s,L);cur.stops.push(s);}
+  }
+  legs.push(cur);
+  const last=st[st.length-1][0];legs.push({type:"walk",from:S[last],fromName:last,to:dst,km:km(S[last],dst),min:walkMin(km(S[last],dst))});
+  // rimuovi cambi "vuoti" (salgo e scendo senza viaggiare)
+  return {legs:legs.filter(l=>!(l.type==="ride"&&l.stops.length<2))};
+}
+function summarize(r){
+  // ricomponi cambi dopo il filtro
+  const L=[];for(const l of r.legs){if(l.type==="transfer"){const p=L[L.length-1];if(!p||p.type!=="ride")continue;}L.push(l);}
+  while(L.length&&L[L.length-2]?.type==="transfer"&&L[L.length-1]?.type!=="ride")L.splice(L.length-2,1);
+  const rides=L.filter(l=>l.type==="ride");
+  for(let i=0;i<L.length;i++)if(L[i].type==="transfer"&&L[i+1]?.type!=="ride")L.splice(i--,1);
+  let total=0,walk=0;for(const l of L){total+=l.min;if(l.type==="walk")walk+=l.min;}
+  if(rides.length)total+=P.wait+2*P.access;
+  const key=rides.map(x=>x.line+":"+x.stops[0]+">"+x.stops[x.stops.length-1]).join("|")||"walk";
+  return {legs:L,rides,total,walk,transfers:Math.max(0,rides.length-1),key,walkKm:L.filter(l=>l.type==="walk").reduce((a,b)=>a+b.km,0)};
+}
+const AXIS={CEN:"EW",CIR:"EW",DIS:"EW",HAM:"EW",PIC:"EW",ELZ:"EW",BAK:"NS",NOR:"NS",VIC:"NS",MET:"NS"};
+function direction(line,stops){const a=S[stops[0]],b=S[stops[stops.length-1]];const dy=b[0]-a[0],dx=(b[1]-a[1])*Math.cos(a[0]*Math.PI/180);
+  const ax=AXIS[line]||(Math.abs(dx)>Math.abs(dy)?"EW":"NS");
+  return ax==="EW"?(dx>0?"Verso est":"Verso ovest"):(dy>0?"Verso nord":"Verso sud");}
+const zones=stops=>{const z=stops.map(s=>ZONE[s]).filter(x=>x!=null).map(x=>x%1?[Math.floor(x),Math.ceil(x)]:[x]).flat();if(!z.length)return"";const lo=Math.min(...z),hi=Math.max(...z);return lo===hi?"zona "+lo:"zone "+lo+"–"+hi;};
+
+// ---------- Stato ----------
+const $=id=>document.getElementById(id);
+const state={from:null,to:null,pref:"fast",routes:[],sel:0,pick:"to"};
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const STATION_PLACES=Object.keys(LINES_AT).map(s=>({name:s,lat:S[s][0],lon:S[s][1],kind:"stazione · "+LINES_AT[s].map(L=>LINES[L].name).join(", ")}));
+const ALL=[...PLACES,...STATION_PLACES];
+function matches(q){q=norm(q);if(!q)return[];return ALL.map(p=>{const n=norm(p.name);const i=n.indexOf(q);return {p,sc:i<0?(q.split(" ").every(w=>n.includes(w))?50:-1):(i===0?0:10)+n.length/100};}).filter(x=>x.sc>=0).sort((a,b)=>a.sc-b.sc).slice(0,8).map(x=>x.p);}
+const fmt=m=>Math.max(1,Math.round(m));
+const clockAdd=(t,m)=>{if(!t)return"";const [h,mi]=t.split(":").map(Number);const d=(h*60+mi+Math.round(m))%1440;return String(Math.floor(d/60)).padStart(2,"0")+":"+String(d%60).padStart(2,"0");};
+const inMilan=(a,o)=>a>51.25&&a<51.75&&o>-0.6&&o<0.4;
+
+function setPoint(k,p,note,cls=""){state[k]=p;$("res-"+k).textContent=note;$("res-"+k).className="resolved "+cls;drawPins();}
+
+// ---------- Ricerca indirizzi ----------
+async function resolve(k){
+  const v=$(k).value.trim();
+  if(!v){setPoint(k,null,"Inserisci un indirizzo.","err");return false;}
+  if(state[k]&&state[k].q===v)return true;
+  const ll=v.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(ll){const a=+ll[1],o=+ll[2];if(inMilan(a,o)){setPoint(k,{lat:a,lon:o,name:v,q:v},"Coordinate inserite.");return true;}}
+  const m=matches(v);if(m.length&&norm(m[0].name)===norm(v)){const p=m[0];setPoint(k,{...p,q:v},p.kind==="luogo"?"Luogo dall'elenco rapido.":"Stazione "+p.kind.replace("stazione · ",""));return true;}
+  $("res-"+k).textContent="Cerco “"+v+"”…";$("res-"+k).className="resolved";
+  try{
+    const r=await geocode(v);
+    if(r){setPoint(k,{lat:r.lat,lon:r.lon,name:r.label,q:v},"Trovato: "+r.label+". Controlla il pin sulla mappa.");return true;}
+    if(m.length){const p=m[0];setPoint(k,{...p,q:v},"Indirizzo non trovato: uso "+p.name+". Per un punto preciso tocca la mappa.","ai");return true;}
+    setPoint(k,null,"Non ho trovato “"+v+"” nell'area di Londra. Prova con il postcode (es. NW1 6XE) o tocca la mappa.","err");return false;
+  }catch(e){
+    if(m.length){const p=m[0];setPoint(k,{...p,q:v},"Sei offline: uso "+p.name+". Per un punto preciso tocca la mappa.","ai");return true;}
+    setPoint(k,null,"Ricerca indirizzi non disponibile (sei offline?). Scegli un luogo dall'elenco o tocca la mappa.","err");return false;}
+}
+// OpenStreetMap Nominatim: max 1 richiesta al secondo, risultati in cache sul dispositivo
+let lastGeo=0;const GEO_KEY="geo-cache-ldn-v1";
+const geoCache=(()=>{try{return JSON.parse(localStorage.getItem(GEO_KEY))||{}}catch{return{}}})();
+async function geocode(q){
+  const key=norm(q);if(geoCache[key])return geoCache[key];
+  const wait=lastGeo+1100-Date.now();if(wait>0)await new Promise(r=>setTimeout(r,wait));lastGeo=Date.now();
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=gb&accept-language=it,en&addressdetails=1&viewbox=-0.6,51.75,0.4,51.25&bounded=1&q="+encodeURIComponent(/london|londra/i.test(q)?q:q+", London");
+  const res=await fetch(u,{headers:{"Accept":"application/json"}});if(!res.ok)throw new Error("http "+res.status);
+  const j=await res.json();if(!j.length)return null;
+  const a=j[0],ad=a.address||{};
+  const label=[!ad.road&&a.name,ad.road&&((ad.house_number?ad.house_number+" ":"")+ad.road),ad.suburb||ad.quarter||ad.city_district,ad.postcode].filter(Boolean).join(", ")||a.display_name.split(",").slice(0,2).join(",");
+  const r={lat:+a.lat,lon:+a.lon,label};if(!inMilan(r.lat,r.lon))return null;
+  geoCache[key]=r;try{localStorage.setItem(GEO_KEY,JSON.stringify(geoCache))}catch{}
+  return r;
+}
+// Posizione attuale
+$("gps").onclick=()=>{
+  if(!navigator.geolocation){setPoint("from",null,"Questo dispositivo non fornisce la posizione.","err");return;}
+  $("res-from").textContent="Cerco la tua posizione…";$("res-from").className="resolved";
+  navigator.geolocation.getCurrentPosition(p=>{const {latitude:a,longitude:o,accuracy:acc}=p.coords;
+    if(!inMilan(a,o)){setPoint("from",null,"Sei fuori dall'area della metropolitana di Londra.","err");return;}
+    $("from").value="La mia posizione";setPoint("from",{lat:a,lon:o,name:"La mia posizione",q:"La mia posizione"},"Posizione GPS (precisione ± "+Math.round(acc)+" m).");
+    if(state.to)run();},
+   e=>setPoint("from",null,e.code===1?"Permesso di posizione negato: attivalo nelle impostazioni del browser.":"Posizione non disponibile, riprova all'aperto.","err"),
+   {enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+};
+function bindSuggest(k){
+  const inp=$(k),box=$("sug-"+k);let idx=-1,list=[];
+  const close=()=>{box.hidden=true;idx=-1;};
+  const render=()=>{box.innerHTML="";list.forEach((p,i)=>{const b=document.createElement("button");b.type="button";b.className=i===idx?"on":"";
+    b.innerHTML="<span></span><span class='k'></span>";b.children[0].textContent=p.name;b.children[1].textContent=p.kind;
+    b.onmousedown=e=>{e.preventDefault();choose(p);};box.appendChild(b);});box.hidden=!list.length;};
+  const choose=p=>{inp.value=p.name;setPoint(k,{...p,q:p.name},p.kind==="luogo"?"Luogo dall'elenco rapido.":"Stazione "+p.kind.replace("stazione · ",""));close();if(state.from&&state.to)run();};
+  inp.addEventListener("input",()=>{list=matches(inp.value);idx=-1;render();});
+  inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){idx=Math.min(list.length-1,idx+1);render();e.preventDefault();}
+    else if(e.key==="ArrowUp"){idx=Math.max(-1,idx-1);render();e.preventDefault();}
+    else if(e.key==="Enter"&&idx>=0){e.preventDefault();choose(list[idx]);}else if(e.key==="Escape")close();});
+  inp.addEventListener("blur",()=>setTimeout(close,120));
+}
+bindSuggest("from");bindSuggest("to");
+
+// ---------- Calcolo ----------
+async function run(){
+  $("go").disabled=true;$("go").textContent="Calcolo…";
+  const ok=(await Promise.all([resolve("from"),resolve("to")])).every(Boolean);
+  $("go").disabled=false;$("go").textContent="Trova percorso";
+  if(!ok){state.routes=[];renderResults();return;}
+  const o=[state.from.lat,state.from.lon],d=[state.to.lat,state.to.lon];
+  const seen=new Map();
+  for(const pr of ["fast","transfers","walk"]){const r=summarize(plan(o,d,pr));if(!seen.has(r.key))seen.set(r.key,{...r,best:[]});seen.get(r.key).best.push(pr);}
+  let routes=[...seen.values()];
+  const minT=Math.min(...routes.map(r=>r.total)),minX=Math.min(...routes.map(r=>r.transfers)),minW=Math.min(...routes.map(r=>r.walk));
+  routes.forEach(r=>{r.tags=[];if(r.total-minT<.5)r.tags.push("Più veloce");if(r.transfers===minX&&routes.length>1)r.tags.push("Meno cambi");if(r.walk-minW<.5&&routes.length>1)r.tags.push("Meno a piedi");});
+  const score={fast:r=>r.total,transfers:r=>r.transfers*100+r.total,walk:r=>r.walk*3+r.total}[state.pref];
+  routes.sort((a,b)=>score(a)-score(b));
+  state.routes=routes;state.sel=0;renderResults();fit();
+}
+
+function renderResults(){
+  const box=$("results"),steps=$("steps");box.innerHTML="";steps.innerHTML="";$("notice").innerHTML="";
+  const gm=$("gm");
+  if(!state.routes.length){box.innerHTML="<p class='empty'>Indica partenza e arrivo per vedere gli itinerari.</p>";gm.hidden=true;drawRoute();return;}
+  const t=$("time").value;
+  if(t){const [h,mi]=t.split(":").map(Number);const m=h*60+mi;if(m>=40&&m<320)$("notice").innerHTML="<div class='warn'>A quest'ora la Tube è chiusa (servizio circa 5:30–0:30). Venerdì e sabato notte funziona la Night Tube su Victoria, Jubilee, Central, Northern e Piccadilly; nelle altre notti ci sono i bus notturni N.</div>";}
+  state.routes.forEach((r,i)=>{
+    const c=document.createElement("button");c.type="button";c.className="card"+(i===state.sel?" on":"");c.setAttribute("aria-pressed",i===state.sel);
+    const strip=r.legs.map(l=>l.type==="walk"?`<span class="w">🚶${fmt(l.min)}′</span>`:l.type==="ride"?badge(l.line):"").filter(Boolean).join("<span class='sep'>›</span>");
+    c.innerHTML=`<div class="ctop"><span class="mins">${fmt(r.total)}<small>min</small></span>${t?`<span class="clock">${t} → ${clockAdd(t,r.total)}</span>`:""}<span class="tags">${r.tags.map(x=>`<span class="tag">${x}</span>`).join("")}</span></div>
+      <div class="strip">${strip}</div>
+      <div class="meta"><span>${r.rides.length?(r.transfers===0?"Nessun cambio":r.transfers+(r.transfers>1?" cambi":" cambio")):"Solo a piedi"}</span><span>${(r.walkKm*P.detour).toFixed(1).replace(".",",")} km a piedi</span>${r.rides.length?`<span>${(n=>n+(n===1?" fermata":" fermate"))(r.rides.reduce((a,x)=>a+x.stops.length-1,0))}</span><span>${zones(r.rides.flatMap(x=>x.stops))}</span>`:""}</div>`;
+    c.onclick=()=>{state.sel=i;renderResults();fit();};box.appendChild(c);
+  });
+  const r=state.routes[state.sel];let clock=0;const tt=m=>t?clockAdd(t,m):"+"+fmt(m)+"′";
+  const add=(time,rail,html,c)=>{const li=document.createElement("li");li.innerHTML=`<span class="t">${time}</span><span class="rail ${rail}" style="${c?`--c:var(${c})`:""}"><i></i></span><div class="d">${html}</div>`;steps.appendChild(li);};
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  add(t||"0′","walk",`<b>${esc(state.from.name)}</b><div class="x">Partenza</div>`);
+  r.legs.forEach((l,i)=>{
+    if(l.type==="walk"){const toTxt=l.toName?`fino alla fermata <b>${esc(l.toName)}</b>`:`fino a destinazione`;
+      clock+=l.min;if(l.toName)clock+=P.access+P.wait;
+      if(l.toName){add(tt(clock-P.access-P.wait-l.min),"walk",`<span class="x">A piedi ${fmt(l.min)} min · ${Math.round(l.km*P.detour*1000)} m ${toTxt}</span>`);}
+      else{add(tt(clock-l.min),"walk",`<span class="x">A piedi ${fmt(l.min)} min · ${Math.round(l.km*P.detour*1000)} m ${toTxt}</span>`);}
+    }else if(l.type==="ride"){const a=l.stops[0],b=l.stops[l.stops.length-1];
+      add(tt(clock),"",`${badge(l.line)} <b>${esc(a)}</b><div class="x">${esc(direction(l.line,l.stops))} · prossima fermata ${esc(l.stops[1])} · ${l.stops.length-1} ${l.stops.length===2?"fermata":"fermate"} · ${fmt(l.min)} min</div>`,LINES[l.line].v);
+      clock+=l.min;
+      const nx=r.legs[i+1];
+      add(tt(clock),nx&&nx.type==="transfer"?"":"walk",`<b>${esc(b)}</b><div class="x">${nx&&nx.type==="transfer"?(nx.fromSt!==nx.at?`Cambia: a piedi fino a <b>${esc(nx.at)}</b> (${fmt(nx.walk)} min) per la ${badge(nx.to)}`:`Cambia per la ${badge(nx.to)} · circa ${P.transfer} min`):"Scendi ed esci"}</div>`,nx&&nx.type==="transfer"?LINES[l.line].v:LINES[l.line].v);
+      if(!nx||nx.type!=="transfer")clock+=P.access;
+    }else if(l.type==="transfer"){clock+=l.min;}
+  });
+  add(tt(r.total),"end",`<b>${esc(state.to.name)}</b><div class="x">Arrivo · ${fmt(r.total)} min in totale</div>`);
+  gm.hidden=false;gm.href=`https://www.google.com/maps/dir/?api=1&origin=${state.from.lat},${state.from.lon}&destination=${state.to.lat},${state.to.lon}&travelmode=transit`;
+  drawRoute();
+}
+
+// ---------- Mappa ----------
+const NS="http://www.w3.org/2000/svg",svg=$("map");
+const LAT0=51.51,LON0=-0.12,K=4000,CX=Math.cos(LAT0*Math.PI/180);
+const X=lon=>(lon-LON0)*CX*K,Y=lat=>(LAT0-lat)*K,LON=x=>x/(CX*K)+LON0,LAT=y=>LAT0-y/K;
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+const gNet=el("g",{}),gRoute=el("g",{}),gLbl=el("g",{}),gSt=el("g",{}),gPin=el("g",{});
+const edgeEls=[];{const cnt={};
+for(const [L,a,b] of NET.E){const k=[a,b].sort().join("|");(cnt[k]??=[]).push(L);}
+for(const [L,a,b] of NET.E){const k=[a,b].sort().join("|");const ls=cnt[k];const i=ls.indexOf(L),n=ls.length;
+  const x1=X(S[a][1]),y1=Y(S[a][0]),x2=X(S[b][1]),y2=Y(S[b][0]);const len=Math.hypot(x2-x1,y2-y1)||1;const sg=a<b?1:-1;
+  const e=el("line",{stroke:`var(${LINES[L].v})`,"stroke-width":4,"stroke-linecap":"round","vector-effect":"non-scaling-stroke"},gNet);
+  edgeEls.push({e,x1,y1,x2,y2,nx:-(y2-y1)/len*sg,ny:(x2-x1)/len*sg,off:i-(n-1)/2});}}
+const stEls=[];
+for(const s of Object.keys(LINES_AT)){const ic=LINES_AT[s].length>1;
+  const c=el("circle",{cx:X(S[s][1]),cy:Y(S[s][0]),r:3,fill:"var(--station)",stroke:ic?"var(--fg)":`var(${LINES[LINES_AT[s][0]].v})`,"stroke-width":ic?2.5:2,"vector-effect":"non-scaling-stroke"},gSt);
+  const tx=el("text",{x:X(S[s][1]),y:Y(S[s][0]),class:"lbl","font-weight":ic?600:400},gLbl);tx.textContent=s;
+  const ti=el("title",{},c);ti.textContent=s+" · "+LINES_AT[s].join(", ");
+  stEls.push({s,c,tx,ic});}
+let vb={x:-200,y:-140,w:420,h:300};
+function applyVB(){svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);const sc=vb.w/Math.max(1,svg.clientWidth);
+  for(const o of edgeEls){const d=o.off*4*sc;o.e.setAttribute("x1",o.x1+o.nx*d);o.e.setAttribute("y1",o.y1+o.ny*d);o.e.setAttribute("x2",o.x2+o.nx*d);o.e.setAttribute("y2",o.y2+o.ny*d);}
+  for(const o of stEls){o.c.setAttribute("r",(o.ic?5:3.6)*sc);o.tx.setAttribute("font-size",11*sc);o.tx.setAttribute("dx",7*sc);o.tx.setAttribute("dy",3.5*sc);
+    o.tx.style.display=(sc<0.32||o.ic&&sc<0.6||o.onRoute)?"":"none";}
+  gLbl.style.strokeWidth=3*sc+"px";
+  for(const p of gPin.querySelectorAll("[data-pin]"))p.setAttribute("transform",`translate(${p.dataset.x},${p.dataset.y}) scale(${sc})`);
+}
+function drawPins(){gPin.innerHTML="";for(const k of ["from","to"]){const p=state[k];if(!p)continue;
+  const g=el("g",{"data-pin":k},gPin);g.dataset.x=X(p.lon);g.dataset.y=Y(p.lat);
+  el("path",{d:"M0 0 C-4 -9 -11 -13 -11 -21 A11 11 0 1 1 11 -21 C11 -13 4 -9 0 0Z",fill:"var(--accent)",stroke:"var(--map)","stroke-width":2},g);
+  const t=el("text",{x:0,y:-17,"text-anchor":"middle","font-size":12,"font-weight":800,fill:"var(--accent-fg)","font-family":"Archivo, Arial, sans-serif"},g);t.textContent=k==="from"?"A":"B";}
+  applyVB();}
+function drawRoute(){gRoute.innerHTML="";const r=state.routes[state.sel];
+  for(const o of stEls)o.onRoute=false;
+  gNet.style.opacity=r&&r.rides.length?.28:1;gSt.style.opacity=r&&r.rides.length?.6:1;
+  if(r){for(const l of r.legs){
+    if(l.type==="walk")el("line",{x1:X(l.from[1]),y1:Y(l.from[0]),x2:X(l.to[1]),y2:Y(l.to[0]),stroke:"var(--walk)","stroke-width":3,"stroke-dasharray":"2 6","stroke-linecap":"round","vector-effect":"non-scaling-stroke"},gRoute);
+    if(l.type==="ride"){el("polyline",{points:l.stops.map(s=>X(S[s][1])+","+Y(S[s][0])).join(" "),fill:"none",stroke:`var(${LINES[l.line].v})`,"stroke-width":9,"stroke-linecap":"round","stroke-linejoin":"round","vector-effect":"non-scaling-stroke"},gRoute);
+      for(const o of stEls)if(o.s===l.stops[0]||o.s===l.stops[l.stops.length-1])o.onRoute=true;}}}
+  applyVB();}
+function fit(){const pts=[];const r=state.routes[state.sel];
+  if(state.from)pts.push([state.from.lat,state.from.lon]);if(state.to)pts.push([state.to.lat,state.to.lon]);
+  if(r)for(const l of r.rides)for(const s of l.stops)pts.push(S[s]);
+  if(!pts.length)return applyVB();
+  const xs=pts.map(p=>X(p[1])),ys=pts.map(p=>Y(p[0]));let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const ar=svg.clientWidth/Math.max(1,svg.clientHeight)||1.3;let w=Math.max(x1-x0,120)*1.35,h=Math.max(y1-y0,90)*1.35+40;
+  if(w/h>ar)h=w/ar;else w=h*ar;vb={x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2-12,w,h};applyVB();}
+function zoom(f,cx,cy){cx??=vb.x+vb.w/2;cy??=vb.y+vb.h/2;const nw=Math.min(2200,Math.max(40,vb.w*f));const k=nw/vb.w;vb={x:cx-(cx-vb.x)*k,y:cy-(cy-vb.y)*k,w:nw,h:vb.h*k};applyVB();}
+const toSvg=(e)=>{const r=svg.getBoundingClientRect();return [vb.x+(e.clientX-r.left)/r.width*vb.w,vb.y+(e.clientY-r.top)/r.height*vb.h];};
+let drag=null;const ptrs=new Map();
+svg.addEventListener("pointerdown",e=>{svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,[e.clientX,e.clientY]);drag={x:e.clientX,y:e.clientY,vb:{...vb},moved:false,pinch:ptrs.size>1?null:undefined};});
+svg.addEventListener("pointermove",e=>{if(!drag||!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);drag.moved=true;if(drag.pd){const r=svg.getBoundingClientRect();const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;zoom(drag.pd/d,vb.x+(mx-r.left)/r.width*vb.w,vb.y+(my-r.top)/r.height*vb.h);}drag.pd=d;return;}
+  const r=svg.getBoundingClientRect();const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)drag.moved=true;
+  if(drag.moved){vb.x=drag.vb.x-dx/r.width*vb.w;vb.y=drag.vb.y-dy/r.height*vb.h;applyVB();}});
+svg.addEventListener("pointerup",e=>{ptrs.delete(e.pointerId);if(!drag)return;const was=drag;if(ptrs.size===0)drag=null;else return;
+  if(!was.moved){const [x,y]=toSvg(e);const k=state.pick;const lat=LAT(y),lon=LON(x);
+    const label="Punto sulla mappa ("+lat.toFixed(4)+", "+lon.toFixed(4)+")";$(k).value=label;
+    setPoint(k,{lat,lon,name:"Punto sulla mappa",q:label},"Punto scelto sulla mappa.");
+    if(k==="from")setPick("to");
+    if(state.from&&state.to)run();}});
+svg.addEventListener("pointercancel",e=>{ptrs.delete(e.pointerId);drag=null;});
+svg.addEventListener("wheel",e=>{e.preventDefault();const [x,y]=toSvg(e);zoom(e.deltaY>0?1.15:1/1.15,x,y);},{passive:false});
+$("zin").onclick=()=>zoom(1/1.4);$("zout").onclick=()=>zoom(1.4);$("zfit").onclick=fit;
+window.addEventListener("resize",()=>applyVB());
+function setPick(k){state.pick=k;for(const b of $("pick").children)b.classList.toggle("on",b.dataset.k===k);}
+for(const b of $("pick").children)b.onclick=()=>setPick(b.dataset.k);
+for(const b of $("pref").children)b.onclick=()=>{state.pref=b.dataset.p;for(const x of $("pref").children)x.classList.toggle("on",x===b);if(state.from&&state.to)run();};
+$("swap").onclick=()=>{const a=$("from").value;$("from").value=$("to").value;$("to").value=a;[state.from,state.to]=[state.to,state.from];
+  const ra=$("res-from").textContent,ca=$("res-from").className;$("res-from").textContent=$("res-to").textContent;$("res-from").className=$("res-to").className;$("res-to").textContent=ra;$("res-to").className=ca;drawPins();if(state.from&&state.to)run();};
+$("f").addEventListener("submit",e=>{e.preventDefault();run();});
+$("time").addEventListener("change",()=>{if(state.routes.length)renderResults();});
+for(const k of ["from","to"])$(k).addEventListener("input",()=>{if(state[k])state[k].q=null;});
+
+// Esempio iniziale
+(function(){const n=new Date();$("time").value=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");
+  $("from").value="British Museum";$("to").value="Tower of London";applyVB();run();})();
+
+// ---------- Installazione e offline ----------
+if("serviceWorker" in navigator&&isSecureContext)navigator.serviceWorker.register("sw.js").catch(()=>{});
+(function(){
+  const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  let dismissed=false;try{dismissed=localStorage.getItem("install-x")==="1"}catch{}
+  if(standalone||dismissed)return;
+  const box=$("install"),txt=$("install-txt"),btn=$("install-btn");
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  $("install-x").onclick=()=>{box.hidden=true;try{localStorage.setItem("install-x","1")}catch{}};
+  if(ios){txt.textContent="Installa l'app su iPhone: tocca Condividi (il quadrato con la freccia) e poi “Aggiungi alla schermata Home”.";box.hidden=false;}
+  let ev=null;
+  addEventListener("beforeinstallprompt",e=>{e.preventDefault();ev=e;txt.textContent="Installa Metro Londra sulla schermata Home: si apre come un'app e funziona anche offline.";btn.hidden=false;box.hidden=false;});
+  btn.onclick=async()=>{if(!ev)return;ev.prompt();await ev.userChoice.catch(()=>{});ev=null;box.hidden=true;};
+  addEventListener("appinstalled",()=>{box.hidden=true;});
+})();
+</script>
+</body>
+</html>

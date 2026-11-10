@@ -21,3 +21,8 @@ Settings → Pages → Deploy from a branch → `main` / root.
 Quando modifichi i file, aumenta `VERSION` in `sw.js` così i telefoni scaricano l'aggiornamento.
 
 I tempi sono stime calcolate dalla rete, non gli orari reali ATM.
+
+## Metro Londra
+Nella cartella `londra/` c'è la stessa app per Londra (Tube, Elizabeth line e DLR), installabile separatamente:
+https://architettoemanuelli-cpu.github.io/metro-milano/londra/
+Rete da un dataset aperto (nicola/tubemaps) aggiornato a mano con Elizabeth line, estensione Northern a Battersea, Heathrow T5 e rami DLR recenti.
