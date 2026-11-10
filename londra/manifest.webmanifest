@@ -1,7 +1,7 @@
 {
   "name": "Metro Londra – Percorsi",
   "short_name": "Metro LDN",
-  "description": "Il percorso migliore con la metropolitana di Londra (Tube, Elizabeth line, DLR) verso qualsiasi indirizzo.",
+  "description": "Il percorso migliore con la metropolitana di Londra (Tube, Elizabeth line, DLR, Overground) verso qualsiasi indirizzo.",
   "lang": "it",
   "start_url": "./",
   "scope": "./",
