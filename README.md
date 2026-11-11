@@ -26,3 +26,16 @@ I tempi sono stime calcolate dalla rete, non gli orari reali ATM.
 Nella cartella `londra/` c'è la stessa app per Londra (Tube, Elizabeth line, DLR e London Overground), installabile separatamente:
 https://architettoemanuelli-cpu.github.io/metro-milano/londra/
 Rete da un dataset aperto (nicola/tubemaps) aggiornato a mano con Elizabeth line, estensione Northern a Battersea, Heathrow T5 e rami DLR recenti.
+
+## Verbale di cantiere
+Nella cartella `verbale/` c'è l'app per i verbali di sopralluogo CSE, installabile separatamente:
+https://architettoemanuelli-cpu.github.io/metro-milano/verbale/
+
+- Archivio dei cantieri: committente, commessa, incarico, luogo e soggetti (Amministrazione, DL, Impresa, Sub appaltatori, Collaudatore…) con email e flag **T** di trasmissione
+- Nuovo verbale: dettatura degli appunti, riconoscimento del cantiere, "Distribuisci nei campi" (presenze, lavorazioni, prescrizioni, meteo, prossima riunione), foto con didascalia, colonne **P**/**T**
+- I campi obbligatori ancora vuoti sono evidenziati in giallo nell'app e nel documento
+- Esporta in Word (.docx) e PDF con la struttura del verbale di sopralluogo dello studio
+- Invio ai destinatari del cantiere: condivisione del file con le app email, oppure email già indirizzata
+- Dati solo sul dispositivo (IndexedDB), con backup e ripristino da Impostazioni; funziona offline
+
+Librerie incluse in `verbale/vendor/`: docx 9.1.1 e jsPDF 2.5.2 (licenza MIT).
