@@ -35,7 +35,7 @@ const idb = {
 };
 
 const DEF = {
-  studio: "", coordinatore: "", localita: "Milano",
+  studio: "ARCHITETTO EMANUELLI", coordinatore: "", localita: "Milano",
   incarico: "Incarico sicurezza in esecuzione e progettazione",
   nb: "N.B.: se nessun commento o richiesta di variazione dovesse pervenire entro 3 gg. dal ricevimento del presente verbale, lo stesso sarà considerato come approvato dalle Parti",
   disposizioni: "- Il tesserino di riconoscimento va tenuto visibile;\n- Dpi e casco vanno sempre indossati;",
@@ -49,6 +49,7 @@ const getC = id => cantieri.find(c => c.id === id);
 const getV = id => verbali.find(v => v.id === id);
 async function load() {
   S = { ...DEF, ...((await idb.get("meta", "settings")) || {}) };
+  if (!String(S.studio || "").trim()) S.studio = DEF.studio;
   cantieri = await idb.all("cantieri"); verbali = await idb.all("verbali");
 }
 let persistAsked = false;

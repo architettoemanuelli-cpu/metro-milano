@@ -1,5 +1,5 @@
 // Service worker: l'app funziona anche senza rete. Cambia VERSION a ogni aggiornamento.
-const VERSION = "verbale-v1";
+const VERSION = "verbale-v2";
 const SHELL = ["./", "index.html", "app.js", "docgen.js", "manifest.webmanifest",
   "vendor/docx.min.js", "vendor/jspdf.umd.min.js",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
