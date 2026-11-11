@@ -1,8 +1,8 @@
 // Service worker: l'app funziona anche senza rete. Cambia VERSION a ogni aggiornamento.
-const VERSION = "verbale-v2";
+const VERSION = "verbale-v3";
 const SHELL = ["./", "index.html", "app.js", "docgen.js", "manifest.webmanifest",
   "vendor/docx.min.js", "vendor/jspdf.umd.min.js",
-  "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
+  "icons/verbale-192.png", "icons/verbale-512.png", "icons/verbale-touch-180.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
