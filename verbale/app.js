@@ -85,15 +85,33 @@ function punteggiatura(s) {
   return s.replace(/\s*\bpunto e virgola\b/gi, ";").replace(/\s*\bdue punti\b/gi, ":").replace(/\s*\bvirgola\b/gi, ",")
     .replace(/\s*\bpunto\b/gi, ".").replace(/\s*\ba capo\b\s*/gi, "\n");
 }
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let recBtn = null, recTimer = null;
+function resetMic() {
+  clearTimeout(recTimer); recTimer = null;
+  if (recBtn) { recBtn.classList.remove("on"); recBtn.setAttribute("aria-pressed", "false"); }
+  recBtn = null; rec = null;
+}
+function tastiera(target) {
+  target.focus();
+  try { const n = target.value.length; target.setSelectionRange(n, n); } catch {}
+  toast("Tocca il microfono della tastiera per dettare.");
+}
 function mic(btn, target) {
-  if (rec) { rec.stop(); return; }
-  if (!SR) { target.focus(); toast("Per dettare usa il microfono della tastiera del telefono."); return; }
-  const r = new SR(); rec = r;
+  // secondo tocco: ferma subito, senza aspettare il browser
+  if (rec) { const r = rec; resetMic(); try { r.abort(); } catch {} return; }
+  // su iPhone e iPad la dettatura del browser non è affidabile: si usa quella della tastiera
+  if (!SR || IOS) { tastiera(target); return; }
+  const r = new SR(); rec = r; recBtn = btn;
   r.lang = "it-IT"; r.continuous = true; r.interimResults = true;
   const base = target.value ? target.value.replace(/\s*$/, target.value.endsWith("\n") ? "" : " ") : "";
-  let fin = "";
+  let fin = "", partito = false;
   const put = txt => { target.value = txt; target.dispatchEvent(new Event("input", { bubbles: true })); };
+  const avviato = () => { partito = true; clearTimeout(recTimer); };
+  r.onstart = r.onaudiostart = avviato;
   r.onresult = e => {
+    if (rec !== r) return;
+    avviato();
     let tmp = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const x = e.results[i];
@@ -101,12 +119,19 @@ function mic(btn, target) {
     }
     put(base + fin + tmp);
   };
-  r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Consenti l'uso del microfono per dettare, oppure usa il microfono della tastiera."); };
-  r.onend = () => { btn.classList.remove("on"); btn.setAttribute("aria-pressed", "false"); rec = null; put((base + fin).replace(/ +$/, "")); };
+  r.onerror = e => {
+    if (rec !== r) return;
+    resetMic();
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Consenti l'uso del microfono per dettare, oppure usa il microfono della tastiera.");
+    else if (e.error !== "aborted" && e.error !== "no-speech") tastiera(target);
+  };
+  r.onend = () => { if (rec !== r) return; resetMic(); put((base + fin).replace(/ +$/, "")); };
   btn.classList.add("on"); btn.setAttribute("aria-pressed", "true");
-  try { r.start(); } catch { rec = null; btn.classList.remove("on"); }
+  // se il browser non risponde entro 4 secondi, la dettatura si ferma e si usa la tastiera
+  recTimer = setTimeout(() => { if (rec === r && !partito) { resetMic(); try { r.abort(); } catch {} tastiera(target); } }, 4000);
+  try { r.start(); } catch { resetMic(); tastiera(target); }
 }
-function stopMic() { if (rec) { try { rec.abort(); } catch {} rec = null; } }
+function stopMic() { if (rec) { const r = rec; resetMic(); try { r.abort(); } catch {} } }
 const MIC = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-2.1A7 7 0 0 0 19 12h-2Z"/></svg>`;
 
 /* --------------------------------------- appunti dettati → campi del verbale */
@@ -620,7 +645,7 @@ function viewImpostazioni() {
     </section>
     <section class="card">
       <h3>Installa sul telefono</h3>
-      <p class="meta"><b>iPhone e iPad:</b> apri questa pagina in Safari, tocca Condividi e poi “Aggiungi alla schermata Home”.<br><b>Android:</b> in Chrome tocca “Installa” nel banner, oppure il menu ⋮ e poi “Installa app”.<br>Una volta installata funziona anche senza rete. La dettatura dal pulsante microfono richiede la rete; il microfono della tastiera funziona sempre.</p>
+      <p class="meta"><b>iPhone e iPad:</b> apri questa pagina in Safari, tocca Condividi e poi “Aggiungi alla schermata Home”.<br><b>Android:</b> in Chrome tocca “Installa” nel banner, oppure il menu ⋮ e poi “Installa app”.<br>Una volta installata funziona anche senza rete. Su iPhone e iPad il pulsante microfono apre la tastiera: detta con il suo microfono. Su Android e computer il pulsante detta direttamente (serve la rete).</p>
       <button class="btn primary" type="button" id="inst" ${deferredInstall ? "" : "hidden"}>Installa l'app</button>
     </section>`;
   const save = debounce(saveS);
