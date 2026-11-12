@@ -1,5 +1,5 @@
 // Service worker: app disponibile offline. Cambia VERSION a ogni aggiornamento.
-const VERSION = "metro-mi-v4";
+const VERSION = "metro-mi-v5";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -10,9 +10,9 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.hostname === "nominatim.openstreetmap.org") return; // ricerca indirizzi: sempre in rete
-  // le altre app del sito (Londra, Verbale di cantiere) hanno il loro service worker: non le tocco
+  // le altre app del sito (Londra, Verbale di cantiere, Dove l'ho messo) hanno il loro service worker: non le tocco
   const base = new URL("./", self.registration.scope).pathname;
-  if (url.origin === location.origin && /^(londra|verbale)(\/|$)/.test(url.pathname.slice(base.length))) return;
+  if (url.origin === location.origin && /^(londra|verbale|dove)(\/|$)/.test(url.pathname.slice(base.length))) return;
   if (url.origin === location.origin) {
     // pagine e file dell'app: prima la rete (per avere gli aggiornamenti), poi la cache
     e.respondWith(fetch(e.request).then(r => { const c = r.clone(); caches.open(VERSION).then(x => x.put(e.request, c)); return r; })
