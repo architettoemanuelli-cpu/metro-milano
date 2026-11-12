@@ -39,3 +39,13 @@ https://architettoemanuelli-cpu.github.io/metro-milano/verbale/
 - Dati solo sul dispositivo (IndexedDB), con backup e ripristino da Impostazioni; funziona offline
 
 Librerie incluse in `verbale/vendor/`: docx 9.1.1 e jsPDF 2.5.2 (licenza MIT).
+
+## Dove l'ho messo?
+Nella cartella `dove/` c'è l'app per ritrovare le cose che usi di rado, installabile separatamente:
+https://architettoemanuelli-cpu.github.io/metro-milano/dove/
+
+- Salva con una frase («La chiave di scorta del garage è nella scatola blu, sul secondo ripiano»: oggetto e posto vengono separati da soli) e una foto del posto
+- Cerca per nome: trova anche con parole parziali o al plurale («chiave garage», «chiavi»), e per posto o per persona a cui l'hai prestato
+- Aggiorna il posto con un tocco («È ancora lì» o uno dei posti già usati), con lo storico dei posti precedenti
+- Cose prestate: a chi e da quando, con «È tornato»
+- Dieci oggetti suggeriti per iniziare; dati solo sul dispositivo, con backup e ripristino da «Altro»
