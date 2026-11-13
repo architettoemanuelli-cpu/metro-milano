@@ -66,6 +66,6 @@ the console for errors, at phone width (~390px) and desktop, in light and dark m
 
 ## App-specific notes
 
-- **Metro Milano / Londra:** travel times are estimates from the network geometry (≈33 km/h, 30 s per stop, 2–3 min wait, 4 min per change, 4.8 km/h walking), not real ATM/TfL timetables. Nominatim: max 1 request/second, results cached in `localStorage`, never cached by the service worker. Network data (`LINES`, station coordinates `S`) is hand-maintained in the HTML; a missing coordinate logs `coord mancante` in the console.
+- **Metro Milano / Londra:** travel times are estimates from the network geometry (≈33 km/h, 30 s per stop, 2–3 min wait, 4 min per change, 4.8 km/h walking), not real ATM/TfL timetables. Nominatim: max 1 request/second, results cached in `localStorage`, never cached by the service worker. Network data (`LINES`, station coordinates `S`) is hand-maintained in the HTML; in Milano a missing coordinate logs `coord mancante` in the console.
 - **Verbale di cantiere:** the Word/PDF layout in `docgen.js` reproduces the studio's CSE site-inspection report template (page 1 header + parties with P/T columns, page 2 topics and conclusions, final inspection sheet). The default header is "ARCHITETTO EMANUELLI". Required fields (`req: true` in `CAMPI`) are highlighted in yellow in the app and in the document. Vendor libs: docx 9.1.1, jsPDF 2.5.2.
 - **Dove l'ho messo?:** a single sentence is split automatically into object and place; search tolerates partial words and plurals.
