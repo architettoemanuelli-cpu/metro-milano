@@ -1,71 +1,71 @@
 # CLAUDE.md
 
-A collection of small, independent **installable PWAs** (static HTML/CSS/JS), published together on GitHub Pages at
-https://architettoemanuelli-cpu.github.io/metro-milano/. No framework, no bundler, no package.json, no dependencies to install.
+Raccolta di piccole **web app installabili (PWA)** indipendenti, in HTML/CSS/JS statici, pubblicate insieme su GitHub Pages:
+https://architettoemanuelli-cpu.github.io/metro-milano/. Niente framework, niente bundler, niente package.json, niente dipendenze da installare.
 
-| Folder | App | Notes |
+| Cartella | App | Note |
 |---|---|---|
-| `/` (root) | Metro Milano – route planner M1–M5 | Everything inline in `index.html`; geocoding via OSM Nominatim |
-| `londra/` | Metro Londra (Tube, Elizabeth, DLR, Overground) | Same structure as Milano, inline `index.html` |
-| `verbale/` | Verbale di cantiere – CSE site-inspection reports | `app.js` + `docgen.js` (Word/PDF), libraries in `vendor/` |
-| `dove/` | Dove l'ho messo? – where did I put rarely-used things | `app.js` |
+| `/` (radice) | Metro Milano – percorsi M1–M5 | Tutto dentro `index.html`; ricerca indirizzi con OSM Nominatim |
+| `londra/` | Metro Londra (Tube, Elizabeth, DLR, Overground) | Stessa struttura di Milano, tutto in `index.html` |
+| `verbale/` | Verbale di cantiere – verbali di sopralluogo CSE | `app.js` + `docgen.js` (Word/PDF), librerie in `vendor/` |
+| `dove/` | Dove l'ho messo? – ritrovare le cose che si usano di rado | `app.js` |
 
-Each app has its own `index.html`, `manifest.webmanifest`, `sw.js` and `icons/`, and is installed separately on the phone.
+Ogni app ha i suoi `index.html`, `manifest.webmanifest`, `sw.js` e `icons/`, e si installa separatamente sul telefono.
 
-## Build / run / check
+## Avvio e controlli
 
-There is no build step and no test suite. What gets pushed is what gets served.
+Non c'è una fase di build né una suite di test: quello che viene caricato su GitHub è quello che viene pubblicato.
 
 ```bash
-# Local server (service workers and geolocation need http://localhost or https)
-python3 -m http.server 8000      # then open http://localhost:8000/ , /londra/ , /verbale/ , /dove/
+# Server locale (service worker e geolocalizzazione richiedono http://localhost o https)
+python3 -m http.server 8000      # poi apri http://localhost:8000/ , /londra/ , /verbale/ , /dove/
 
-# Syntax check of the separate JS files
+# Controllo della sintassi dei file JS separati
 for f in sw.js */sw.js dove/app.js verbale/app.js verbale/docgen.js; do node --check "$f"; done
 
-# Syntax check of the inline scripts (Milano and Londra)
+# Controllo della sintassi degli script dentro le pagine (Milano e Londra)
 for f in index.html londra/index.html; do
   python3 -c "import re,sys;print('\n'.join(re.findall(r'<script>(.*?)</script>',open(sys.argv[1]).read(),re.S)))" "$f" > /tmp/inline.js \
     && node --check /tmp/inline.js && echo "ok $f"
 done
 ```
 
-For behaviour changes, open the page in headless Chromium (Playwright is pre-installed in cloud sessions) and check
-the console for errors, at phone width (~390px) and desktop, in light and dark mode.
+Per le modifiche di comportamento, apri la pagina in Chromium headless (Playwright è già installato nelle sessioni cloud)
+e controlla che la console non mostri errori, a larghezza telefono (~390px) e da computer, in tema chiaro e scuro.
 
-## Deploy
+## Pubblicazione
 
-- `.github/workflows/pages.yml` publishes the whole repo root to GitHub Pages on every push to `main`.
-- Workflow: work on a branch, open a PR, the owner merges it, Pages redeploys automatically.
+- `.github/workflows/pages.yml` pubblica l'intera radice del repository su GitHub Pages a ogni push su `main`.
+- Flusso di lavoro: si lavora su un branch, si apre una PR, il proprietario la unisce e Pages ripubblica da solo.
 
-## Rules to follow on every change
+## Regole per ogni modifica
 
-1. **Bump `VERSION` in the `sw.js` of every app you touched** (e.g. `verbale-v4` → `verbale-v5`), otherwise installed phones keep the old cached copy. Keep the prefix (`metro-mi-`, `metro-ldn-`, `verbale-`, `dove-`): the activate handler deletes old caches by prefix.
-2. If you add a file an app needs offline, add it to the `SHELL` list in that app's `sw.js`.
-3. **Adding a new app in a subfolder:** give it its own `sw.js`/manifest/icons and a unique cache prefix, **and** add the folder to the exclusion regex in the root `sw.js` (`/^(londra|verbale|dove)(\/|$)/`), otherwise the Metro Milano service worker intercepts its requests. Also add a section to `README.md` with the link.
-4. Update `README.md` when an app's features change (the README is in Italian, written for the user, not for developers).
-5. No CDNs for code: libraries go into `<app>/vendor/` with their licence file (see `verbale/vendor/`), so the app works offline. Only Google Fonts are loaded from outside (and cached by the service worker).
-6. User data stays on the device only: IndexedDB for `verbale/` and `dove/` (with backup/restore from the settings), `localStorage` only for small conveniences (geocoding cache, dismissed install banner). No server, no accounts, no analytics.
-7. Wrap `localStorage` access in `try/catch` as the existing code does.
+1. **Aumenta `VERSION` nel `sw.js` di ogni app modificata** (es. `verbale-v4` → `verbale-v5`), altrimenti i telefoni su cui è installata tengono la vecchia copia. Mantieni il prefisso (`metro-mi-`, `metro-ldn-`, `verbale-`, `dove-`): all'attivazione le vecchie cache vengono cancellate in base al prefisso.
+2. Se aggiungi un file che serve all'app offline, aggiungilo all'elenco `SHELL` nel `sw.js` di quell'app.
+3. **Nuova app in una sottocartella:** dalle `sw.js`, manifest e icone propri e un prefisso di cache unico, **e** aggiungi la cartella all'esclusione nel `sw.js` della radice (`/^(londra|verbale|dove)(\/|$)/`), altrimenti il service worker di Metro Milano intercetta le sue richieste. Aggiungi anche una sezione con il link in `README.md`.
+4. Aggiorna `README.md` quando cambiano le funzioni di un'app (il README è in italiano e scritto per chi usa le app, non per sviluppatori).
+5. Nessuna CDN per il codice: le librerie vanno in `<app>/vendor/` con il loro file di licenza (vedi `verbale/vendor/`), così l'app funziona offline. Dall'esterno si caricano solo i Google Fonts (salvati in cache dal service worker).
+6. I dati restano solo sul dispositivo: IndexedDB per `verbale/` e `dove/` (con backup e ripristino dalle impostazioni), `localStorage` solo per piccole comodità (cache degli indirizzi, banner di installazione chiuso). Niente server, account o statistiche.
+7. Racchiudi gli accessi a `localStorage` in `try/catch`, come fa il codice esistente.
 
-## Code style
+## Stile del codice
 
-- **User-facing language is Italian**: UI text, README, comments, identifiers in domain code (`cantieri`, `verbali`, `oggetti`, `salva`, `oggi`…). Keep the plain, friendly tone of the existing texts; avoid technical jargon in the UI.
-- `verbale/` and `dove/` (separate `app.js`): `"use strict"`, 2-space indentation, double quotes, semicolons, arrow functions, template literals; small helpers `$`, `$$`, `esc` (always escape user text before putting it into HTML), `uid`. Section separators like `/* ------------------------------ archivio */`.
-- `index.html` (Milano) and `londra/index.html`: single file, compact/dense one-line style inside the inline `<script>` and `<style>`. Keep that style when editing them; don't reformat whole files.
-- CSS: colours as custom properties on `:root`, with dark mode under `@media (prefers-color-scheme: dark)` with `:root:not([data-theme="light"])` and under `:root[data-theme="dark"]`. Respect `env(safe-area-inset-*)` for the iPhone notch. Layouts must work at phone width.
-- Target devices: **iPhone/iPad Safari first** (all iOS browsers use WebKit), then Android Chrome and desktop. Beware of WebKit gaps: e.g. Web Speech dictation is unreliable on iOS, so `verbale/` falls back to the keyboard's own microphone.
-- Icons: PNGs per app (192, 512, maskable 512, Apple touch 180). Use the app-specific file names (`verbale-192.png`, `dove-192.png`) for new apps so iOS doesn't confuse icons between apps.
+- **La lingua è l'italiano**: testi dell'interfaccia, README, commenti, nomi nel codice di dominio (`cantieri`, `verbali`, `oggetti`, `salva`, `oggi`…). Mantieni il tono semplice e cordiale dei testi esistenti; niente gergo tecnico nell'interfaccia.
+- `verbale/` e `dove/` (con `app.js` separato): `"use strict"`, rientro di 2 spazi, virgolette doppie, punto e virgola, arrow function, template literal; piccole funzioni di aiuto `$`, `$$`, `esc` (fai sempre l'escape del testo dell'utente prima di inserirlo nell'HTML), `uid`. Separatori di sezione come `/* ------------------------------ archivio */`.
+- `index.html` (Milano) e `londra/index.html`: file unico, stile compatto e denso su una riga dentro `<script>` e `<style>`. Mantieni quello stile quando li modifichi; non riformattare interi file.
+- CSS: colori come variabili su `:root`, con il tema scuro sotto `@media (prefers-color-scheme: dark)` con `:root:not([data-theme="light"])` e sotto `:root[data-theme="dark"]`. Rispetta `env(safe-area-inset-*)` per la tacca dell'iPhone. I layout devono funzionare a larghezza telefono.
+- Dispositivi: **prima iPhone/iPad con Safari** (tutti i browser su iOS usano WebKit), poi Android con Chrome e computer. Attenzione ai limiti di WebKit: per esempio la dettatura Web Speech su iOS non è affidabile, quindi `verbale/` ripiega sul microfono della tastiera.
+- Icone: PNG per ogni app (192, 512, maskable 512, Apple touch 180). Per le nuove app usa nomi di file specifici (`verbale-192.png`, `dove-192.png`) così iOS non confonde le icone tra un'app e l'altra.
 
-## Commits and PRs
+## Commit e PR
 
-- Commit messages and PR titles/descriptions **in Italian**, describing the change from the user's point of view
-  (e.g. "Verbale di cantiere: il pulsante microfono non resta più bloccato"), with a short explanatory body.
-- Start the title with the app name when the change concerns a single app.
-- Don't commit zip files (`metro-milano-app.zip` is in `.gitignore`).
+- Messaggi di commit e titoli/descrizioni delle PR **in italiano**, descrivendo la modifica dal punto di vista di chi usa l'app
+  (es. "Verbale di cantiere: il pulsante microfono non resta più bloccato"), con un breve testo di spiegazione.
+- Se la modifica riguarda una sola app, inizia il titolo con il nome dell'app.
+- Non caricare file zip (`metro-milano-app.zip` è in `.gitignore`).
 
-## App-specific notes
+## Note sulle singole app
 
-- **Metro Milano / Londra:** travel times are estimates from the network geometry (≈33 km/h, 30 s per stop, 2–3 min wait, 4 min per change, 4.8 km/h walking), not real ATM/TfL timetables. Nominatim: max 1 request/second, results cached in `localStorage`, never cached by the service worker. Network data (`LINES`, station coordinates `S`) is hand-maintained in the HTML; in Milano a missing coordinate logs `coord mancante` in the console.
-- **Verbale di cantiere:** the Word/PDF layout in `docgen.js` reproduces the studio's CSE site-inspection report template (page 1 header + parties with P/T columns, page 2 topics and conclusions, final inspection sheet). The default header is "ARCHITETTO EMANUELLI". Required fields (`req: true` in `CAMPI`) are highlighted in yellow in the app and in the document. Vendor libs: docx 9.1.1, jsPDF 2.5.2.
-- **Dove l'ho messo?:** a single sentence is split automatically into object and place; search tolerates partial words and plurals.
+- **Metro Milano / Londra:** i tempi di viaggio sono stime dalla geometria della rete (≈33 km/h, 30 s per fermata, 2–3 min di attesa, 4 min per cambio, 4,8 km/h a piedi), non gli orari reali ATM/TfL. Nominatim: al massimo 1 richiesta al secondo, risultati salvati in `localStorage`, mai nella cache del service worker. I dati della rete (`LINES`, coordinate delle fermate `S`) sono mantenuti a mano nell'HTML; in Milano una coordinata mancante scrive `coord mancante` nella console.
+- **Verbale di cantiere:** l'impaginazione Word/PDF in `docgen.js` riproduce il modello di verbale di sopralluogo CSE dello studio (pagina 1 intestazione + soggetti con colonne P/T, pagina 2 argomenti e conclusioni, pagina finale scheda di sopralluogo). L'intestazione predefinita è "ARCHITETTO EMANUELLI". I campi obbligatori (`req: true` in `CAMPI`) sono evidenziati in giallo nell'app e nel documento. Librerie: docx 9.1.1, jsPDF 2.5.2.
+- **Dove l'ho messo?:** una sola frase viene divisa da sola in oggetto e posto; la ricerca trova anche parole parziali e plurali.
